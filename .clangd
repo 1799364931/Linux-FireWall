@@ -6,6 +6,7 @@ CompileFlags:
     - -I/usr/src/linux-headers-6.11.0-21-generic/include/uapi
     - -I/usr/src/linux-headers-6.11.0-21-generic/arch/x86/include/uapi
     - -I/usr/src/linux-headers-6.11.0-21-generic/include/generated/uapi
+    - -I/usr/include
     - -D__KERNEL__
     - -DMODULE
     - -D__GNUC__
