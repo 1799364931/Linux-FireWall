@@ -1,0 +1,26 @@
+CompileFlags:
+  Add: 
+    - -I/usr/src/linux-headers-6.11.0-21-generic/include
+    - -I/usr/src/linux-headers-6.11.0-21-generic/arch/x86/include
+    - -I/usr/src/linux-headers-6.11.0-21-generic/arch/x86/include/generated
+    - -I/usr/src/linux-headers-6.11.0-21-generic/include/uapi
+    - -I/usr/src/linux-headers-6.11.0-21-generic/arch/x86/include/uapi
+    - -I/usr/src/linux-headers-6.11.0-21-generic/include/generated/uapi
+    - -D__KERNEL__
+    - -DMODULE
+    - -D__GNUC__
+    - -D__x86_64__
+    - -DKBUILD_BASENAME="\"your_module\""
+    - -DKBUILD_MODNAME="\"your_module\""
+    - -std=gnu89
+    - -nostdinc
+    - -Wno-unused-parameter
+    - -Wno-missing-field-initializers
+    - -Wno-declaration-after-statement
+    - -Wno-address-of-packed-member
+  CompilationDatabase: ./
+Diagnostics:
+  ClangTidy:
+    Add: 
+      - -checks=*
+      - -warnings-as-errors=*
