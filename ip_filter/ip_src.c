@@ -1,22 +1,21 @@
 
+#include "../rule.h"
+#include "../rule_bitmap.h"
 #include "ip_filter.h"
 
+#define RULE_IP_SRC_FILTER RULE_SRC_IP | RULE_SRC_IP_MASK
 
-static struct nf_hook_ops ip_dst_filter_nfho = {
-    .hook = ip_dst_filter_hook,         
-    .pf = PF_INET,               
-    .hooknum = NF_INET_PRE_ROUTING, 
-    .priority = NF_IP_PRI_FIRST,     
+static struct nf_hook_ops ip_src_filter_nfho = {
+    .hook = ip_src_filter_hook,
+    .pf = PF_INET,
+    .hooknum = NF_INET_PRE_ROUTING,
+    .priority = NF_IP_PRI_FIRST,
 };
 
-
-char fip[] = "192.168.119.134";
-
-unsigned int ip_dst_filter_hook(void* priv,
-                                   struct sk_buff* skb,
-                                   const struct nf_hook_state* state) {
+unsigned int ip_src_filter_hook(void* priv,
+                                struct sk_buff* skb,
+                                const struct nf_hook_state* state) {
     struct iphdr* iph;
-    char ip_str[20];
 
     if (!skb)
         return NF_ACCEPT;
@@ -25,12 +24,37 @@ unsigned int ip_dst_filter_hook(void* priv,
     if (!iph)
         return NF_ACCEPT;
 
-    snprintf(ip_str, sizeof(ip_str), "%pI4", &iph->saddr);
+    struct black_list* black_list = get_black_list();
 
-    if (strcmp(ip_str, fip) == 0) {
-        return NF_DROP;
+    struct rule_list_node* head = *(black_list->head);
+    struct rule_list_node* mov = head;
+
+    while (mov != NULL) {
+        // 判断是否有IP相关的 过滤规则
+        if (mov->rule_bitmap & (RULE_IP_SRC_FILTER)) {
+            for (uint32_t i = 0; i < mov->match_condition_size ;i ++){
+                switch(mov->rules[i].match_type){
+                    case RULE_SRC_IP:{
+                        if(iph->saddr == mov->rules[i].src_ip){
+                            SKB_RULE_BITMAP(skb)|= RULE_SRC_IP;
+                        }
+                        break;
+                    }
+                    case RULE_SRC_IP_MASK:{
+                        if(ip_match_prefix(iph->saddr,mov->rules[i].src_mask_ip)){
+                            SKB_RULE_BITMAP(skb)|= RULE_SRC_IP_MASK;
+                        }
+                        break;
+                    }
+                    default:
+                        continue;
+                }
+            }
+        }
+        if(mov->rule_bitmap == SKB_RULE_BITMAP(skb)){
+            return NF_DROP;
+        }
     }
 
     return NF_ACCEPT;
 }
-

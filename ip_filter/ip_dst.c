@@ -1,26 +1,19 @@
 
 #include "ip_filter.h"
-MODULE_LICENSE("GPL");
-MODULE_AUTHOR("Kotori");
-MODULE_DESCRIPTION("Simple Firewall Module - IP Filter");
-MODULE_VERSION("1.0");
+#include "../rule.h"
+#include "../rule_bitmap.h"
 
-
-static struct nf_hook_ops ip_src_filter_nfho = {
-    .hook = ip_src_filter_hook,         
-    .pf = PF_INET,                   
-    .hooknum = NF_INET_PRE_ROUTING, 
-    .priority = NF_IP_PRI_FIRST,    
+static struct nf_hook_ops ip_dst_filter_nfho = {
+    .hook = ip_dst_filter_hook,
+    .pf = PF_INET,
+    .hooknum = NF_INET_PRE_ROUTING,
+    .priority = NF_IP_PRI_FIRST,
 };
 
-
-char fip[] = "192.168.119.134";
-
-unsigned int ip_src_filter_hook(void* priv,
-                                   struct sk_buff* skb,
-                                   const struct nf_hook_state* state) {
+unsigned int ip_dst_filter_hook(void* priv,
+                                struct sk_buff* skb,
+                                const struct nf_hook_state* state) {
     struct iphdr* iph;
-    char ip_str[20];
 
     if (!skb)
         return NF_ACCEPT;
@@ -28,12 +21,10 @@ unsigned int ip_src_filter_hook(void* priv,
     iph = ip_hdr(skb);
     if (!iph)
         return NF_ACCEPT;
+    
 
-    snprintf(ip_str, sizeof(ip_str), "%pI4", &iph->daddr);
-
-    if (strcmp(ip_str, fip) == 0) {
-        return NF_DROP;
-    }
+    // 考虑黑名单规则
+    
 
     return NF_ACCEPT;
 }
