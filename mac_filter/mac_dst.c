@@ -1,15 +1,18 @@
 #include "mac_filter.h"
+#include "../rule.h"
+#include "../rule_bitmap.h"
 
-static struct nf_hook_ops mac_dst_filter_nfho = {
-    .hook = mac_dst_filter_hook,          // 钩子函数
-    .pf = PF_INET,                   // 协议族：IPv4
-    .hooknum = NF_INET_PRE_ROUTING,  // 钩子点：在路由之前
-    .priority = NF_IP_PRI_FIRST,     // 优先级：最高
+#define RULE_MAC_FILTER RULE_DST_MAC | RULE_SRC_MAC
+
+
+static struct nf_hook_ops mac_filter_nfho = {
+    .hook = mac_filter_hook,          
+    .pf = PF_INET,                   
+    .hooknum = NF_INET_LOCAL_IN,  
+    .priority = NF_IP_PRI_LAST,     
 };
 
-unsigned char mac[] = {1,2,3,4,5,6};
-
-unsigned int mac_dst_filter_hook(void* priv,
+unsigned int mac_filter_hook(void* priv,
                                    struct sk_buff* skb,
                                    const struct nf_hook_state* state) {
     
@@ -25,8 +28,37 @@ unsigned int mac_dst_filter_hook(void* priv,
         return NF_ACCEPT;
     }
     
-    if(memcmp(eth->h_dest,mac,ETH_ALEN) == 0){
-        return NF_DROP;
+    struct black_list* black_list = get_black_list();
+
+    struct rule_list_node* head = *(black_list->head);
+    struct rule_list_node* mov = head;
+
+    while (mov != NULL) {
+        // 判断是否有IP相关的 过滤规则
+        if (mov->rule_bitmap & (RULE_MAC_FILTER)) {
+            for (uint32_t i = 0; i < mov->match_condition_size ;i ++){
+                switch(mov->rules[i].match_type){
+                    case RULE_SRC_MAC:{
+                        if(memcmp(eth->h_source,mov->rules[i].src_mac,ETH_ALEN) == 0){
+                            SKB_RULE_BITMAP(skb)|= RULE_SRC_MAC;
+                        }
+                        break;
+                    }
+                    case RULE_DST_MAC:{
+                        if(memcmp(eth->h_dest,mov->rules[i].dst_mac,ETH_ALEN) == 0){
+                            SKB_RULE_BITMAP(skb)|= RULE_DST_MAC;
+                        }
+                        break;
+                    }
+                    default:
+                        continue;
+                }
+            }
+        }
+        if(mov->rule_bitmap == SKB_RULE_BITMAP(skb)){
+            return NF_DROP;
+        }
+        mov = mov->next;
     }
     
     return NF_ACCEPT;

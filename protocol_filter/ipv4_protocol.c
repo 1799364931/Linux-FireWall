@@ -1,13 +1,16 @@
 #include "protocol.h"
+#include "../rule.h"
+#include "../rule_bitmap.h"
+
+
+#define RULE_PROTOCOL_FILTER RULE_IPV4_PROTOCOL
 
 static struct nf_hook_ops ipv4_protocol_filter_nfho = {
-    .hook = ipv4_protocol_filter_hook,          // 钩子函数
-    .pf = PF_INET,                   // 协议族：IPv4
-    .hooknum = NF_INET_PRE_ROUTING,  // 钩子点：在路由之前
-    .priority = NF_IP_PRI_FIRST,     // 优先级：最高
+    .hook = ipv4_protocol_filter_hook,          
+    .pf = PF_INET,                   
+    .hooknum = NF_INET_LOCAL_IN,  
+    .priority = NF_IP_PRI_RAW_BEFORE_DEFRAG,     
 };
-
-uint8_t ipv4_protocol = 0;
 
 unsigned int ipv4_protocol_filter_hook(void* priv,
                                    struct sk_buff* skb,
@@ -26,10 +29,32 @@ unsigned int ipv4_protocol_filter_hook(void* priv,
         return NF_ACCEPT;
     }
     
-    if(iph->protocol == ipv4_protocol){
-        return NF_DROP;
+    struct black_list* black_list = get_black_list();
+
+    struct rule_list_node* head = *(black_list->head);
+    struct rule_list_node* mov = head;
+
+    while (mov != NULL) {
+        // 判断是否有IP相关的 过滤规则
+        if (mov->rule_bitmap & (RULE_PROTOCOL_FILTER)) {
+            for (uint32_t i = 0; i < mov->match_condition_size ;i ++){
+                switch(mov->rules[i].match_type){
+                    case RULE_IPV4_PROTOCOL:{
+                        if(iph->protocol == mov->rules[i].ipv4_protocol){
+                            SKB_RULE_BITMAP(skb)|= RULE_IPV4_PROTOCOL;
+                        }
+                        break;
+                    }
+                    default:
+                        continue;
+                }
+            }
+        }
+        if(mov->rule_bitmap == SKB_RULE_BITMAP(skb)){
+            return NF_DROP;
+        }
+        mov = mov->next;
     }
-    
     return NF_ACCEPT;
 }
 
