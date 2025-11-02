@@ -1,5 +1,6 @@
 #ifndef _RULE_BITMAP_H
 #define _RULE_BITMAP_H
+
 #define RULE_SRC_IP (1<<0)
 #define RULE_SRC_IP_MASK (1<<1)
 #define RULE_DST_IP (1<<2)

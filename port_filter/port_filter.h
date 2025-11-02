@@ -1,6 +1,8 @@
 #ifndef _PORT_FILTER_H
 #define _PORT_FILTER_H
 
+#include "../rule/rule.h"
+#include "../rule/rule_bitmap.h"
 #include <linux/kernel.h>
 #include <linux/module.h>
 #include <linux/netfilter.h>
@@ -8,6 +10,7 @@
 #include <linux/tcp.h>
 #include <linux/udp.h>
 #include <linux/byteorder/generic.h>
+#include <linux/ip.h>
 
 extern struct nf_hook_ops port_filter_nfho;
 

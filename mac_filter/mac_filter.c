@@ -1,16 +1,7 @@
 #include "mac_filter.h"
-#include "../rule.h"
-#include "../rule_bitmap.h"
 
 #define RULE_MAC_FILTER RULE_DST_MAC | RULE_SRC_MAC
 
-
-static struct nf_hook_ops mac_filter_nfho = {
-    .hook = mac_filter_hook,          
-    .pf = PF_INET,                   
-    .hooknum = NF_INET_LOCAL_IN,  
-    .priority = NF_IP_PRI_LAST,     
-};
 
 unsigned int mac_filter_hook(void* priv,
                                    struct sk_buff* skb,
@@ -31,7 +22,7 @@ unsigned int mac_filter_hook(void* priv,
     struct black_list* black_list = get_black_list();
 
     struct rule_list_node* head = *(black_list->head);
-    struct rule_list_node* mov = head;
+    struct rule_list_node* mov = head->next;
 
     while (mov != NULL) {
         // 判断是否有IP相关的 过滤规则

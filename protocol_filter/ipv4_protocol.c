@@ -1,16 +1,8 @@
 #include "protocol.h"
-#include "../rule.h"
-#include "../rule_bitmap.h"
 
 
 #define RULE_PROTOCOL_FILTER RULE_IPV4_PROTOCOL
 
-static struct nf_hook_ops ipv4_protocol_filter_nfho = {
-    .hook = ipv4_protocol_filter_hook,          
-    .pf = PF_INET,                   
-    .hooknum = NF_INET_LOCAL_IN,  
-    .priority = NF_IP_PRI_RAW_BEFORE_DEFRAG,     
-};
 
 unsigned int ipv4_protocol_filter_hook(void* priv,
                                    struct sk_buff* skb,
@@ -32,7 +24,7 @@ unsigned int ipv4_protocol_filter_hook(void* priv,
     struct black_list* black_list = get_black_list();
 
     struct rule_list_node* head = *(black_list->head);
-    struct rule_list_node* mov = head;
+    struct rule_list_node* mov = head->next;
 
     while (mov != NULL) {
         // 判断是否有IP相关的 过滤规则
