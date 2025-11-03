@@ -40,6 +40,43 @@ struct white_list* get_white_list(void) {
     return &white_list;
 }
 
+void add_black_list_rule(struct rule_list_node* new_rule_list_node) {
+    struct black_list* black_list = get_black_list();
+    // 头节点添加
+    struct rule_list_node* head = *(black_list->head);
+    if (head->next == NULL) {
+        head->next = new_rule_list_node;
+        new_rule_list_node->priv = head;
+    } else {
+        struct rule_list_node* tmp = head->next;
+        head->next = new_rule_list_node;
+        new_rule_list_node->priv = head;
+        new_rule_list_node->next = tmp;
+        if (tmp) {
+            tmp->priv = new_rule_list_node;
+        }
+    }
+}
+
+void relase_black_list(void){
+    
+    struct black_list* black_list = get_black_list();
+    struct rule_list_node* cur = *(black_list->head);
+    struct rule_list_node* next;
+
+    while (cur) {
+        next = cur->next;
+        if (cur->rules) {
+            free(cur->rules);
+        }
+        free(cur);
+        cur = next;
+    }
+
+    free(black_list->head);
+    black_list->head = NULL;
+}
+
 uint64_t compute_bitmap(uint32_t size,
                         struct match_condition* match_conditions) {
     uint64_t bitmap = 0;

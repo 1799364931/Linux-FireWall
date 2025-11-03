@@ -1,7 +1,5 @@
 /*
     防火墙过滤规则
-
-
 */
 #ifndef _RULE_H
 #define _RULE_H
@@ -45,7 +43,12 @@ struct black_list* get_black_list(void);
 
 struct white_list* get_white_list(void);
 
+void add_black_list_rule(struct rule_list_node* new_rule_list_node);
+
+void relase_black_list(void);
+
 uint64_t compute_bitmap(uint32_t size,
                         struct match_condition* match_conditions);
+
 
 #endif

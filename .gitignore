@@ -1,0 +1,27 @@
+# 内核模块编译产物
+*.o
+*.ko
+*.mod.c
+*.symvers
+*.order
+*.o.cmd
+*.cmd
+*.tmp_versions/
+*.markers
+modules.order
+Module.symvers
+Module.markers
+
+# Makefile生成的中间文件
+*.a
+*.so
+*.gcno
+*.gcda
+*.d
+
+# 编辑器临时文件
+*~
+*.swp
+*.swo
+*.bak
+*.log

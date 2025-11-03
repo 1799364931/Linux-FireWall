@@ -4,10 +4,10 @@
 
 #include <linux/in.h>
 #include <linux/inet.h>
-#include <linux/string.h>
-#include <linux/module.h>
+#include <linux/init.h>
 #include <linux/kernel.h>
-#include <linux/init.h> 
+#include <linux/module.h>
+#include <linux/string.h>
 
 #include "ip_filter/ip_filter.h"
 #include "mac_filter/mac_filter.h"
@@ -15,7 +15,6 @@
 #include "protocol_filter/protocol.h"
 #include "rule/rule.h"
 #include "rule/rule_bitmap.h"
-
 
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("Kotori");
@@ -48,22 +47,6 @@ static struct nf_hook_ops hook_ops_array[] = {
         .priority = NF_IP_PRI_CONNTRACK_DEFRAG,
     }};
 
-
-static void add_black_list_rule(struct rule_list_node* new_rule_list_node) {
-    struct black_list* black_list = get_black_list();
-    // 头节点添加
-    struct rule_list_node* head = *(black_list->head);
-    if (head->next == NULL) {
-        head->next = new_rule_list_node;
-        new_rule_list_node->priv = head;
-    } else {
-        struct rule_list_node* tmp = head->next;
-        head->next = new_rule_list_node;
-        new_rule_list_node->priv = head;
-        new_rule_list_node->next = tmp;
-        tmp->priv = new_rule_list_node;
-    }
-}
 
 static int __init firewall_init(void) {
     int ret;
@@ -101,8 +84,7 @@ static int __init firewall_init(void) {
         }
     }
 
-    printk(KERN_INFO
-           "Firewall module: Successfully loaded\n");
+    printk(KERN_INFO "Firewall module: Successfully loaded\n");
     return 0;
 }
 
@@ -119,4 +101,3 @@ static void __exit firewall_exit(void) {
 // 注册模块的初始化和退出函数
 module_init(firewall_init);
 module_exit(firewall_exit);
-
