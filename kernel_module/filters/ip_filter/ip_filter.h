@@ -6,8 +6,8 @@
 #include <linux/module.h>
 #include <linux/netfilter.h>
 #include <linux/netfilter_ipv4.h>
-#include "../rule/rule.h"
-#include "../rule/rule_bitmap.h"
+#include "../../rule/rule.h"
+#include "../../rule/rule_bitmap.h"
 
 // extern struct nf_hook_ops ip_filter_nfho;
 

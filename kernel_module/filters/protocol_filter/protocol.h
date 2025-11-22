@@ -1,8 +1,8 @@
 #ifndef _PROTOCOL_FILTER_H
 #define _PROTOCOL_FILTER_H
 
-#include "../rule/rule.h"
-#include "../rule/rule_bitmap.h"
+#include "../../rule/rule.h"
+#include "../../rule/rule_bitmap.h"
 #include <linux/kernel.h>
 #include <linux/module.h>
 #include <linux/netfilter.h>

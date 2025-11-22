@@ -8,8 +8,8 @@
 #include <linux/slab.h>
 #include <linux/string.h>
 #include <linux/tcp.h>  // 解析TCP头（UDP同理，可扩展）
-#include "../rule/rule.h"
-#include "../rule/rule_bitmap.h"
+#include "../../rule/rule.h"
+#include "../../rule/rule_bitmap.h"
 #include "content_filter_list/content_filter_list.h"
 
 unsigned int content_filter_hook(void* priv,

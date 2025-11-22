@@ -2,10 +2,13 @@
 #define _STATE_FILTER_H
 
 #include <linux/netfilter.h>
+#include <linux/kernel.h>
+#include <linux/string.h>
 #include <linux/skbuff.h>
 #include <linux/ip.h>
 #include <linux/tcp.h>
-
+#include "../../rule/rule.h"
+#include "../../rule/rule_bitmap.h"
 // 连接状态过滤策略（可扩展）
 // 函数声明
 int init_state_filter(void);                  // 初始化状态过滤模块

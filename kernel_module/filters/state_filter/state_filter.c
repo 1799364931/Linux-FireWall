@@ -1,8 +1,5 @@
 #include "state_filter.h"
-#include <linux/kernel.h>
-#include <linux/string.h>
-#include "../rule/rule.h"
-#include "../rule/rule_bitmap.h"
+
 
 /**
  * 状态过滤Netfilter钩子函数

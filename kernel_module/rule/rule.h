@@ -5,8 +5,8 @@
 #define _RULE_H
 
 #include <linux/types.h>
-#include "../content_filter/content_filter_list/content_filter_list.h"
-#include "../time_filter/time_filter_list/time_filter_list.h"
+#include "../filters/content_filter/content_filter_list/content_filter_list.h"
+#include "../filters/time_filter/time_filter_list/time_filter_list.h"
 
 struct match_condition {
     // 这个取值在位图

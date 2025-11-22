@@ -1,12 +1,5 @@
-/*
- * time_filter_list.c - 规则管理实现
- */
 #include "time_filter_list.h"
-#include <linux/kernel.h>
-#include <linux/slab.h>
 
-/* 全局时间规则列表 */
-// static struct time_rule_list global_rule_list;
 
 /**
  * init_time_rules - 初始化时间规则系统
