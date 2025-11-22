@@ -3,9 +3,9 @@
 */
 #ifndef _RULE_H
 #define _RULE_H
-#include <linux/slab.h>
-#include <linux/string.h>
+
 #include <linux/types.h>
+#include "../content_filter/content_filter_list/content_filter_list.h"
 struct match_condition {
     // 这个取值在位图
     uint64_t match_type;
@@ -19,6 +19,7 @@ struct match_condition {
         uint8_t* src_mac;
         uint8_t* dst_mac;
         uint8_t ipv4_protocol;
+        struct content_rule_list* content_list;
     };
 };
 

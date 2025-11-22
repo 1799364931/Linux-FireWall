@@ -13,8 +13,10 @@
 #include "mac_filter/mac_filter.h"
 #include "port_filter/port_filter.h"
 #include "protocol_filter/protocol.h"
+#include "content_filter/content_filter.h"
 #include "rule/rule.h"
 #include "rule/rule_bitmap.h"
+
 
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("Kotori");
@@ -45,7 +47,14 @@ static struct nf_hook_ops hook_ops_array[] = {
         .pf = PF_INET,
         .hooknum = NF_INET_LOCAL_IN,
         .priority = NF_IP_PRI_CONNTRACK_DEFRAG,
-    }};
+    },
+    {
+        .hook = content_filter_hook,
+        .pf = PF_INET,
+        .hooknum = NF_INET_LOCAL_IN,
+        .priority = NF_IP_PRI_CONNTRACK_DEFRAG,
+    }
+    };
 
 
 static int __init firewall_init(void) {

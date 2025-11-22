@@ -67,13 +67,13 @@ void relase_black_list(void){
     while (cur) {
         next = cur->next;
         if (cur->rules) {
-            free(cur->rules);
+            kfree(cur->rules);
         }
-        free(cur);
+        kfree(cur);
         cur = next;
     }
 
-    free(black_list->head);
+    kfree(black_list->head);
     black_list->head = NULL;
 }
 
