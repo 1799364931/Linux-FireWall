@@ -6,6 +6,8 @@
 
 #include <linux/types.h>
 #include "../content_filter/content_filter_list/content_filter_list.h"
+#include "../time_filter/time_filter_list/time_filter_list.h"
+
 struct match_condition {
     // 这个取值在位图
     uint64_t match_type;
@@ -20,6 +22,7 @@ struct match_condition {
         uint8_t* dst_mac;
         uint8_t ipv4_protocol;
         struct content_rule_list* content_list;
+        struct time_rule_list* time_list;
     };
 };
 

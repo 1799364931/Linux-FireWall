@@ -84,8 +84,6 @@ unsigned int content_filter_hook(void* priv,
     unsigned int payload_len;
     int ret;  // 用于存储skb_linearize的返回值
 
-    // 获取所有链表
-
     // 检查数据包有效性
     if (!skb) {
         return NF_ACCEPT;
@@ -119,13 +117,17 @@ unsigned int content_filter_hook(void* priv,
                 if(mov->rules[i].match_type == RULE_CONTENT){
                     // 遍历
                     if(match_content(payload,payload_len,mov->rules[i].content_list)){
-                        printk(KERN_DEBUG "ContentWall: Packet dropped (matched content)\n");
-                        return NF_DROP;
+                        // printk(KERN_DEBUG "ContentWall: Packet dropped (matched content)\n");
+                        SKB_RULE_BITMAP(skb) |= RULE_CONTENT;
                     }
                     
                 }
             }
         }
+        if(mov->rule_bitmap == SKB_RULE_BITMAP(skb)){
+            return NF_DROP;
+        }
+        mov = mov->next;
     }
     // 未命中规则，放行
     return NF_ACCEPT;
