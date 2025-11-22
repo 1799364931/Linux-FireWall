@@ -24,7 +24,7 @@ unsigned int state_filter_hook(void* priv,
                 if (mov->rules[i].match_type ==
                     RULE_STATE_POLICY_DENY_ALL_NEW) {
                     if (!check_tcp_state(skb)) {
-                        SKB_RULE_BITMAP(skb) |= RULE_DST_PORT;
+                        SKB_RULE_BITMAP(skb) |= RULE_STATE_POLICY_DENY_ALL_NEW;
                     }
                 }
             }

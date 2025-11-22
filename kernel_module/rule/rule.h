@@ -23,6 +23,7 @@ struct match_condition {
         uint8_t ipv4_protocol;
         struct content_rule_list* content_list;
         struct time_rule_list* time_list;
+        char* interface;
     };
 };
 

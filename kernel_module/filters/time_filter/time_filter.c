@@ -58,8 +58,8 @@ unsigned int time_filter_hook(void* priv,
                         }
                     }
                     // 遍历完毕后判断是否应该丢弃
-                    if (drop_count || !accept_count ) {
-                        SKB_RULE_BITMAP(skb) |= RULE_CONTENT;
+                    if (drop_count || !accept_count) {
+                        SKB_RULE_BITMAP(skb) |= RULE_TIME;
                     }
                 }
             }
