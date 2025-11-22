@@ -2,47 +2,6 @@
  * time_filter.c - 时间过滤器实现
  */
 #include "time_filter.h"
-#include <linux/rtc.h>  /*时间转换API（time64_to_tm）*/
-#include <linux/time.h> /*内核时间API（ktime_get_real_ts64）*/
-#include "../rule/rule.h"
-#include "../rule/rule_bitmap.h"
-#include "./time_filter_list/time_filter_list.h" /*拿到时间规则的结构体定义*/
-
-/**
- * check_time_in_range - 检查当前时间是否在指定范围内
- */
-int check_time_in_range(int start_hour,
-                        int start_min,
-                        int end_hour,
-                        int end_min) {
-    struct timespec64 ts;
-    struct tm tm_now;
-    int current_minutes, start_minutes, end_minutes;
-    time64_t local_time;
-
-    /* 获取当前时间 */
-    ktime_get_real_ts64(&ts);
-
-    /* 转换为本地时间 (假设UTC+8) */
-    local_time = ts.tv_sec + 8 * 3600;
-    time64_to_tm(local_time, 0, &tm_now);
-
-    /* 将时间转换为分钟数，便于比较 */
-    current_minutes = tm_now.tm_hour * 60 + tm_now.tm_min;
-    start_minutes = start_hour * 60 + start_min;
-    end_minutes = end_hour * 60 + end_min;
-
-    /* 处理跨天情况 (如 23:00-01:00) */
-    if (start_minutes > end_minutes) {
-        /* 跨天规则：在开始时间之后或结束时间之前 */
-        return (current_minutes >= start_minutes ||
-                current_minutes <= end_minutes);
-    } else {
-        /* 同天规则：在开始和结束时间之间 */
-        return (current_minutes >= start_minutes &&
-                current_minutes <= end_minutes);
-    }
-}
 
 /**
  * time_filter_hook - Netfilter钩子函数
@@ -113,4 +72,40 @@ unsigned int time_filter_hook(void* priv,
 
     /* 没有匹配的规则，默认接受 */
     return NF_ACCEPT;
+}
+
+/**
+ * check_time_in_range - 检查当前时间是否在指定范围内
+ */
+int check_time_in_range(int start_hour,
+                        int start_min,
+                        int end_hour,
+                        int end_min) {
+    struct timespec64 ts;
+    struct tm tm_now;
+    int current_minutes, start_minutes, end_minutes;
+    time64_t local_time;
+
+    /* 获取当前时间 */
+    ktime_get_real_ts64(&ts);
+
+    /* 转换为本地时间 (假设UTC+8) */
+    local_time = ts.tv_sec + 8 * 3600;
+    time64_to_tm(local_time, 0, &tm_now);
+
+    /* 将时间转换为分钟数，便于比较 */
+    current_minutes = tm_now.tm_hour * 60 + tm_now.tm_min;
+    start_minutes = start_hour * 60 + start_min;
+    end_minutes = end_hour * 60 + end_min;
+
+    /* 处理跨天情况 (如 23:00-01:00) */
+    if (start_minutes > end_minutes) {
+        /* 跨天规则：在开始时间之后或结束时间之前 */
+        return (current_minutes >= start_minutes ||
+                current_minutes <= end_minutes);
+    } else {
+        /* 同天规则：在开始和结束时间之间 */
+        return (current_minutes >= start_minutes &&
+                current_minutes <= end_minutes);
+    }
 }

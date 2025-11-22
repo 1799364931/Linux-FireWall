@@ -7,6 +7,10 @@
 /* 包含依赖的内核头文件：提供Netfilter和数据包相关的结构体定义 */
 #include <linux/netfilter.h>
 #include <linux/skbuff.h>
+#include <linux/rtc.h>  /*时间转换API（time64_to_tm）*/
+#include "../rule/rule.h"
+#include "../rule/rule_bitmap.h"
+#include "./time_filter_list/time_filter_list.h" /*拿到时间规则的结构体定义*/
 
 /* Netfilter钩子函数 */
 unsigned int time_filter_hook(void *priv,

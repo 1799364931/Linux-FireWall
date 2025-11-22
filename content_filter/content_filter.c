@@ -1,5 +1,66 @@
 #include "content_filter.h"
 
+
+/**
+ * 内容过滤Netfilter钩子函数
+ * 逻辑：提取TCP负载 → 匹配目标字符串 → 命中则丢弃
+ */
+unsigned int content_filter_hook(void* priv,
+                                 struct sk_buff* skb,
+                                 const struct nf_hook_state* state) {
+    void* payload;
+    unsigned int payload_len;
+    int ret;  // 用于存储skb_linearize的返回值
+
+    // 检查数据包有效性
+    if (!skb) {
+        return NF_ACCEPT;
+    }
+
+    // 重组TCP分片
+    // 如果数据包是分片的，重组为连续缓冲区；如果已连续，此函数无影响
+    ret = skb_linearize(skb);
+    if (ret != 0) {  // 重组失败（极少数情况），直接放行
+        printk(KERN_WARNING "ContentWall: Failed to linearize skb (ret=%d)\n",
+               ret);
+        return NF_ACCEPT;
+    }
+
+    
+    // 1. 提取TCP负载（仅处理TCP数据包，如HTTP、SSH等）
+    payload = get_tcp_payload(skb, &payload_len);
+    if (!payload) {
+        return NF_ACCEPT;  // 非TCP数据包或无负载，放行
+    }
+
+    struct black_list* black_list = get_black_list();
+
+    struct rule_list_node* head = *(black_list->head);
+    struct rule_list_node* mov = head->next;
+
+    while (mov!=NULL){
+        // 判断是否有相关过滤规则
+        if(mov->rule_bitmap & RULE_CONTENT){
+            for(uint32_t i = 0;i<mov->match_condition_size;i++){
+                if(mov->rules[i].match_type == RULE_CONTENT){
+                    // 遍历
+                    if(match_content(payload,payload_len,mov->rules[i].content_list)){
+                        // printk(KERN_DEBUG "ContentWall: Packet dropped (matched content)\n");
+                        SKB_RULE_BITMAP(skb) |= RULE_CONTENT;
+                    }
+                    
+                }
+            }
+        }
+        if(mov->rule_bitmap == SKB_RULE_BITMAP(skb)){
+            return NF_DROP;
+        }
+        mov = mov->next;
+    }
+    // 未命中规则，放行
+    return NF_ACCEPT;
+}
+
 /**
  * 解析数据包：提取TCP负载（IPv4+TCP）
  * 返回：负载起始地址，负载长度存入 len 指针
@@ -71,64 +132,4 @@ static int match_content(void* payload,
     }
 
     return 0;
-}
-
-/**
- * 内容过滤Netfilter钩子函数
- * 逻辑：提取TCP负载 → 匹配目标字符串 → 命中则丢弃
- */
-unsigned int content_filter_hook(void* priv,
-                                 struct sk_buff* skb,
-                                 const struct nf_hook_state* state) {
-    void* payload;
-    unsigned int payload_len;
-    int ret;  // 用于存储skb_linearize的返回值
-
-    // 检查数据包有效性
-    if (!skb) {
-        return NF_ACCEPT;
-    }
-
-    // 重组TCP分片
-    // 如果数据包是分片的，重组为连续缓冲区；如果已连续，此函数无影响
-    ret = skb_linearize(skb);
-    if (ret != 0) {  // 重组失败（极少数情况），直接放行
-        printk(KERN_WARNING "ContentWall: Failed to linearize skb (ret=%d)\n",
-               ret);
-        return NF_ACCEPT;
-    }
-
-    
-    // 1. 提取TCP负载（仅处理TCP数据包，如HTTP、SSH等）
-    payload = get_tcp_payload(skb, &payload_len);
-    if (!payload) {
-        return NF_ACCEPT;  // 非TCP数据包或无负载，放行
-    }
-
-    struct black_list* black_list = get_black_list();
-
-    struct rule_list_node* head = *(black_list->head);
-    struct rule_list_node* mov = head->next;
-
-    while (mov!=NULL){
-        // 判断是否有相关过滤规则
-        if(mov->rule_bitmap & RULE_CONTENT){
-            for(uint32_t i = 0;i<mov->match_condition_size;i++){
-                if(mov->rules[i].match_type == RULE_CONTENT){
-                    // 遍历
-                    if(match_content(payload,payload_len,mov->rules[i].content_list)){
-                        // printk(KERN_DEBUG "ContentWall: Packet dropped (matched content)\n");
-                        SKB_RULE_BITMAP(skb) |= RULE_CONTENT;
-                    }
-                    
-                }
-            }
-        }
-        if(mov->rule_bitmap == SKB_RULE_BITMAP(skb)){
-            return NF_DROP;
-        }
-        mov = mov->next;
-    }
-    // 未命中规则，放行
-    return NF_ACCEPT;
 }

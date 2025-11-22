@@ -9,14 +9,15 @@
 #include <linux/module.h>
 #include <linux/string.h>
 
+#include "content_filter/content_filter.h"
 #include "ip_filter/ip_filter.h"
 #include "mac_filter/mac_filter.h"
 #include "port_filter/port_filter.h"
 #include "protocol_filter/protocol.h"
-#include "content_filter/content_filter.h"
 #include "rule/rule.h"
 #include "rule/rule_bitmap.h"
-
+#include "state_filter/state_filter.h"
+#include "time_filter/time_filter.h"
 
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("Kotori");
@@ -53,9 +54,19 @@ static struct nf_hook_ops hook_ops_array[] = {
         .pf = PF_INET,
         .hooknum = NF_INET_LOCAL_IN,
         .priority = NF_IP_PRI_CONNTRACK_DEFRAG,
-    }
-    };
-
+    },
+    {
+        .hook = time_filter_hook,
+        .pf = PF_INET,
+        .hooknum = NF_INET_LOCAL_IN,
+        .priority = NF_IP_PRI_CONNTRACK_DEFRAG,
+    },
+    {
+        .hook = state_filter_hook,
+        .pf = PF_INET,
+        .hooknum = NF_INET_LOCAL_IN,
+        .priority = NF_IP_PRI_CONNTRACK_DEFRAG,
+    }};
 
 static int __init firewall_init(void) {
     int ret;

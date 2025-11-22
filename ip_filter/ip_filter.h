@@ -15,7 +15,6 @@ unsigned int ip_filter_hook(void* priv,
                                    struct sk_buff* skb,
                                    const struct nf_hook_state* state);
 
-
 uint8_t calc_prefix_len(uint32_t prefix);
 
 bool ip_match_prefix(uint32_t ip, uint32_t prefix);

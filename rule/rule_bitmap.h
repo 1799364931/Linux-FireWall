@@ -12,6 +12,7 @@
 #define RULE_IPV4_PROTOCOL (1<<8)
 #define RULE_CONTENT (1<<9)
 #define RULE_TIME (1<<10)
+#define RULE_STATE_POLICY_DENY_ALL_NEW (1<<11)
 
 
 #define SKB_RULE_BITMAP(skb) (*(uint64_t *)(skb->cb))
