@@ -361,6 +361,12 @@ void cmd_parser::parse_args(uint32_t argc) {
     }
 
     // 处理状态连接过滤开关
+    if (parser_.exist("est")) {
+        entry->conditions[entry->condition_count].match_type =
+            RULE_STATE_POLICY_DENY_ALL_NEW;
+        entry->bitmap &= RULE_STATE_POLICY_DENY_ALL_NEW;
+        entry->condition_count++;
+    }
 
     // 处理content
     if (parser_.exist("content")) {
@@ -388,7 +394,6 @@ void cmd_parser::parse_args(uint32_t argc) {
                 ptr += str.length();
             }
             buffer_offset = ptr - start;
-
         } else {
             // 失败处理
             return;
