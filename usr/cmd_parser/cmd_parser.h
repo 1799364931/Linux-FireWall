@@ -3,7 +3,11 @@
 #define _CMD_PARSER_H
 
 #include "cmdline.h"
-
+#include <cctype>
+#include <optional>
+#include <netinet/in.h>
+#include <unordered_map>
+#include <utility>
 class cmd_parser {
    public:
     cmd_parser() { this->build_parser(); }
@@ -12,21 +16,21 @@ class cmd_parser {
 
    private:
 
-    static const std::vector<std::string> proto;
+    static const std::unordered_map<std::string,u_int16_t> protos_;
 
     void build_parser();
 
-    void is_vaild();
+    void parse_args();
 
-    bool ip_vaild(std::string ip_str);
+    std::optional<u_int32_t> ip_parse(std::string ip_str);
 
-    bool mac_vaild(std::string mac_str);
+    std::optional<std::vector<char>> mac_parse(std::string mac_str);
 
-    bool proto_vaild(std::string proto_str);
+    std::optional<u_int16_t> proto_parse(std::string proto_str);
 
-    bool time_vaild(std::string time_str);
+    std::optional<std::vector<std::pair<int,int>>> time_parse(std::string time_str);
 
-    bool content_vaild(std::string contents);
+    std::optional<std::vector<std::string>> content_parse(std::string contents);
 
     cmdline::parser parser_;
 };
