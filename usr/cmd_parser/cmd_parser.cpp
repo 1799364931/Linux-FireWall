@@ -224,7 +224,6 @@ void cmd_parser::parse_args(uint32_t argc) {
         sizeof(struct rule_entry_msg);
     uint32_t buffer_offset = 0;
     uint32_t buffer_len = 0;
-    uint64_t bitmap = 0;
 
     struct rule_entry_msg* entry =
         (struct rule_entry_msg*)malloc(total_rule_entry_msg_size);
@@ -234,6 +233,8 @@ void cmd_parser::parse_args(uint32_t argc) {
         auto ip = ip_parse(parser_.get<std::string>("src-ip"));
         if (ip.has_value()) {
             entry->conditions[entry->condition_count].src_ip = ip.value();
+            entry->conditions[entry->condition_count].match_type = RULE_SRC_IP;
+            entry->bitmap &= RULE_SRC_IP;
             entry->condition_count++;
         } else {
             // 失败处理
@@ -245,6 +246,8 @@ void cmd_parser::parse_args(uint32_t argc) {
         auto ip = ip_parse(parser_.get<std::string>("dst-ip"));
         if (ip.has_value()) {
             entry->conditions[entry->condition_count].dst_ip = ip.value();
+            entry->conditions[entry->condition_count].match_type = RULE_DST_IP;
+            entry->bitmap &= RULE_DST_IP;
             entry->condition_count++;
         } else {
             // 失败处理
@@ -256,6 +259,9 @@ void cmd_parser::parse_args(uint32_t argc) {
         auto ip = ip_parse(parser_.get<std::string>("src-ip-mask"));
         if (ip.has_value()) {
             entry->conditions[entry->condition_count].src_mask_ip = ip.value();
+            entry->conditions[entry->condition_count].match_type =
+                RULE_SRC_IP_MASK;
+            entry->bitmap &= RULE_SRC_IP_MASK;
             entry->condition_count++;
         } else {
             // 失败处理
@@ -267,6 +273,9 @@ void cmd_parser::parse_args(uint32_t argc) {
         auto ip = ip_parse(parser_.get<std::string>("dst-ip-mask"));
         if (ip.has_value()) {
             entry->conditions[entry->condition_count].dst_mask_ip = ip.value();
+            entry->conditions[entry->condition_count].match_type =
+                RULE_DST_IP_MASK;
+            entry->bitmap &= RULE_DST_IP_MASK;
             entry->condition_count++;
         } else {
             // 失败处理
@@ -279,6 +288,10 @@ void cmd_parser::parse_args(uint32_t argc) {
         auto port = parser_.get<int>("src-port");
         if (0 <= port <= 65535) {
             entry->conditions[entry->condition_count].src_port = port;
+            entry->conditions[entry->condition_count].match_type =
+                RULE_SRC_PORT;
+            entry->bitmap &= RULE_SRC_PORT;
+
             entry->condition_count++;
         } else {
             // 失败处理
@@ -290,6 +303,9 @@ void cmd_parser::parse_args(uint32_t argc) {
         auto port = parser_.get<int>("dst-port");
         if (0 <= port <= 65535) {
             entry->conditions[entry->condition_count].dst_port = port;
+            entry->conditions[entry->condition_count].match_type =
+                RULE_DST_PORT;
+            entry->bitmap &= RULE_DST_PORT;
             entry->condition_count++;
         } else {
             // 失败处理
@@ -304,6 +320,12 @@ void cmd_parser::parse_args(uint32_t argc) {
             memcpy(mac.value().data(),
                    entry->conditions[entry->condition_count].src_mac,
                    MAC_LENGTH);
+            entry->conditions[entry->condition_count].match_type = RULE_SRC_MAC;
+            entry->bitmap &= RULE_SRC_MAC;
+            entry->condition_count++;
+        } else {
+            // 失败处理
+            return;
         }
     }
 
@@ -313,9 +335,67 @@ void cmd_parser::parse_args(uint32_t argc) {
             memcpy(mac.value().data(),
                    entry->conditions[entry->condition_count].dst_mac,
                    MAC_LENGTH);
+            entry->conditions[entry->condition_count].match_type = RULE_DST_MAC;
+            entry->bitmap &= RULE_DST_MAC;
+            entry->condition_count++;
+        } else {
+            // 失败处理
+            return;
         }
     }
 
-    //处理proto
-    
+    // 处理proto
+    if (parser_.exist("proto")) {
+        auto proto = proto_parse(parser_.get<std::string>("proto"));
+        if (proto.has_value()) {
+            entry->conditions[entry->condition_count].ipv4_protocol =
+                proto.value();
+            entry->conditions[entry->condition_count].match_type =
+                RULE_IPV4_PROTOCOL;
+            entry->bitmap &= RULE_IPV4_PROTOCOL;
+            entry->condition_count++;
+        } else {
+            // 失败处理
+            return;
+        }
+    }
+
+    // 处理状态连接过滤开关
+
+    // 处理content
+    if (parser_.exist("content")) {
+        auto contents = content_parse(parser_.get<std::string>("content"));
+        // buffer布局
+        // [字符串个数|4字节][字符串1长度][字符串1][字符串2长度][字符串2].....
+        //
+        // 序列化
+        if (contents.has_value()) {
+            uint32_t total_size = 1 + contents.value().size();
+            for (auto& str : contents.value()) {
+                total_size += str.length();
+            }
+            buffer.resize(total_size);
+            auto ptr = buffer.data();
+            int len = static_cast<int>(contents.value().size());
+            std::memcpy(ptr, &len, sizeof(len));
+            auto start = ptr;
+            ptr += sizeof(int);
+            for (auto& str : contents.value()) {
+                len = static_cast<int>(str.length());
+                std::memcpy(ptr, &len, sizeof(len));
+                ptr += sizeof(int);
+                std::memcpy(ptr, str.data(), str.length());
+                ptr += str.length();
+            }
+            buffer_offset = ptr - start;
+
+        } else {
+            // 失败处理
+            return;
+        }
+    }
+
+    // 处理time
+
+    // 处理interface
 }
