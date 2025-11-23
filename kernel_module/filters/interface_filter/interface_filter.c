@@ -14,22 +14,20 @@ unsigned int interface_filter_hook(void* priv,
 
     iph = ip_hdr(skb);
 
-    struct black_list* black_list = get_black_list();
-
-    struct rule_list_node* head = *(black_list->head);
-    struct rule_list_node* mov = head->next;
+    struct rule_list* while_list = get_rule_list(RULE_LIST_BLACK);
+    struct rule_list_node* mov;
+    // 黑名单过滤
     dev = state->in;
     if (!dev) {
         return NF_ACCEPT;
     }
-    while (mov != NULL) {
+
+    list_for_each_entry(mov, &while_list->nodes, list) {
         // 判断是否有IP相关的 过滤规则
         if (mov->rule_bitmap & (RULE_INTERFACE)) {
-            for (uint32_t i = 0; i < mov->match_condition_size; i++) {
+            for (uint32_t i = 0; i < mov->condition_count; i++) {
                 if (mov->rule_bitmap & RULE_INTERFACE) {
-                    if (strcmp(dev->name, mov->rules[i].interface) == 0) {
-                        fw_add_log(src_ip, dst_ip, 0, 0, iph->protocol, "DROP",
-                                   "Input interface blocked", dev->name);
+                    if (strcmp(dev->name, mov->conditions[i].interface) == 0) {
                         SKB_RULE_BITMAP(skb) |= RULE_INTERFACE;
                     }
                 }
@@ -38,7 +36,6 @@ unsigned int interface_filter_hook(void* priv,
         if (mov->rule_bitmap == SKB_RULE_BITMAP(skb)) {
             return NF_DROP;
         }
-        mov = mov->next;
     }
 
     return NF_ACCEPT;

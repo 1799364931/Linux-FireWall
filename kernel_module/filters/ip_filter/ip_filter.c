@@ -1,12 +1,11 @@
 #include "ip_filter.h"
 
-#define RULE_IP_FILTER RULE_SRC_IP | RULE_SRC_IP_MASK |RULE_DST_IP | RULE_DST_IP_MASK
-
-
+#define RULE_IP_FILTER \
+    RULE_SRC_IP | RULE_SRC_IP_MASK | RULE_DST_IP | RULE_DST_IP_MASK
 
 unsigned int ip_filter_hook(void* priv,
-                                struct sk_buff* skb,
-                                const struct nf_hook_state* state) {
+                            struct sk_buff* skb,
+                            const struct nf_hook_state* state) {
     struct iphdr* iph;
 
     if (!skb)
@@ -16,41 +15,38 @@ unsigned int ip_filter_hook(void* priv,
     if (!iph)
         return NF_ACCEPT;
 
-    struct black_list* black_list = get_black_list();
-
-    struct rule_list_node* head = *(black_list->head);
-    struct rule_list_node* mov = head->next;
-
-    while (mov != NULL) {
+    struct rule_list* while_list = get_rule_list(RULE_LIST_BLACK);
+    struct rule_list_node* mov;
+    // 黑名单过滤
+    list_for_each_entry(mov, &while_list->nodes, list) {
         // 判断是否有IP相关的 过滤规则
         if (mov->rule_bitmap & (RULE_IP_FILTER)) {
-            // char buf[30];
-            // snprintf(buf, 16, "%pI4", &iph->saddr);
-            // printk(KERN_INFO "当前的ip是%s",buf);
-            for (uint32_t i = 0; i < mov->match_condition_size ;i ++){
-                switch(mov->rules[i].match_type){
-                    case RULE_SRC_IP:{
-                        if(iph->saddr == mov->rules[i].src_ip){
-                            SKB_RULE_BITMAP(skb)|= RULE_SRC_IP;
+            for (uint32_t i = 0; i < mov->condition_count; i++) {
+                switch (mov->conditions[i].match_type) {
+                    case RULE_SRC_IP: {
+                        if (iph->saddr == mov->conditions[i].src_ip) {
+                            SKB_RULE_BITMAP(skb) |= RULE_SRC_IP;
                             printk(KERN_INFO "yes");
                         }
                         break;
                     }
-                    case RULE_SRC_IP_MASK:{
-                        if(ip_match_prefix(iph->saddr,mov->rules[i].src_mask_ip)){
-                            SKB_RULE_BITMAP(skb)|= RULE_SRC_IP_MASK;
+                    case RULE_SRC_IP_MASK: {
+                        if (ip_match_prefix(iph->saddr,
+                                            mov->conditions[i].src_mask_ip)) {
+                            SKB_RULE_BITMAP(skb) |= RULE_SRC_IP_MASK;
                         }
                         break;
                     }
-                    case RULE_DST_IP:{
-                        if(iph->daddr == mov->rules[i].dst_ip){
-                            SKB_RULE_BITMAP(skb)|= RULE_SRC_IP;
+                    case RULE_DST_IP: {
+                        if (iph->daddr == mov->conditions[i].dst_ip) {
+                            SKB_RULE_BITMAP(skb) |= RULE_SRC_IP;
                         }
                         break;
                     }
-                    case RULE_DST_IP_MASK:{
-                        if(ip_match_prefix(iph->daddr,mov->rules[i].dst_mask_ip)){
-                            SKB_RULE_BITMAP(skb)|= RULE_DST_IP_MASK;
+                    case RULE_DST_IP_MASK: {
+                        if (ip_match_prefix(iph->daddr,
+                                            mov->conditions[i].dst_mask_ip)) {
+                            SKB_RULE_BITMAP(skb) |= RULE_DST_IP_MASK;
                         }
                         break;
                     }
@@ -59,12 +55,11 @@ unsigned int ip_filter_hook(void* priv,
                 }
             }
         }
-        
-        if(mov->rule_bitmap == SKB_RULE_BITMAP(skb)){
+        if (mov->rule_bitmap == SKB_RULE_BITMAP(skb)) {
             return NF_DROP;
         }
-        mov = mov->next;
     }
+
     return NF_ACCEPT;
 }
 

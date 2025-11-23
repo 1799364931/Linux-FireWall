@@ -16,17 +16,17 @@ class cmd_parser {
 
    private:
 
-    static const std::unordered_map<std::string,u_int16_t> protos_;
+    static const std::unordered_map<std::string,uint16_t> protos_;
 
     void build_parser();
 
-    void parse_args();
+    void parse_args(uint32_t argc);
 
-    std::optional<u_int32_t> ip_parse(std::string ip_str);
+    std::optional<uint32_t> ip_parse(std::string ip_str);
 
     std::optional<std::vector<char>> mac_parse(std::string mac_str);
 
-    std::optional<u_int16_t> proto_parse(std::string proto_str);
+    std::optional<uint16_t> proto_parse(std::string proto_str);
 
     std::optional<std::vector<std::pair<int,int>>> time_parse(std::string time_str);
 

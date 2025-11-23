@@ -90,10 +90,10 @@ static int __init firewall_init(void) {
 
     struct rule_list_node* new_rule_list_node = (struct rule_list_node*)kmalloc(
         sizeof(struct rule_list_node), GFP_KERNEL);
-    new_rule_list_node->rules = match_conditions;
-    new_rule_list_node->match_condition_size = 3;
+    new_rule_list_node->conditions = match_conditions;
+    new_rule_list_node->condition_count = 3;
     new_rule_list_node->rule_bitmap = compute_bitmap(
-        new_rule_list_node->match_condition_size, new_rule_list_node->rules);
+        new_rule_list_node->condition_count, new_rule_list_node->conditions);
 
     add_black_list_rule(new_rule_list_node);
 

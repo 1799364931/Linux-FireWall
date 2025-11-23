@@ -5,55 +5,60 @@
 #define _RULE_H
 
 #include <linux/types.h>
+#include <linux/list.h>
+#include "../../public_structs/match_condition_msg.h"
+#include "../../public_structs/rule_bitmap.h"
 #include "../filters/content_filter/content_filter_list/content_filter_list.h"
 #include "../filters/time_filter/time_filter_list/time_filter_list.h"
 
+
+// 不要复用
+
 struct match_condition {
-    // 这个取值在位图
     uint64_t match_type;
     union {
-        __be32 src_ip;
-        __be32 dst_ip;
-        __be32 src_mask_ip;
-        __be32 dst_mask_ip;
-        __be16 src_port;
-        __be16 dst_port;
-        uint8_t* src_mac;
-        uint8_t* dst_mac;
+        uint32_t src_ip;
+        uint32_t dst_ip;
+        uint32_t src_mask_ip;
+        uint32_t dst_mask_ip;
+        uint16_t src_port;
+        uint16_t dst_port;
         uint8_t ipv4_protocol;
-        struct content_rule_list* content_list;
-        struct time_rule_list* time_list;
+        uint8_t src_mac[MAC_LENGTH];
+        uint8_t dst_mac[MAC_LENGTH];
+
         char* interface;
+        struct content_rule_list* content_list;
+        struct time_rule_list* time_list; 
+    
     };
 };
 
 struct rule_list_node {
-    struct rule_list_node* priv;
-    struct rule_list_node* next;
-    struct match_condition* rules;
-    uint32_t match_condition_size;
-    uint64_t rule_bitmap;
+    struct list_head list;                
+    struct match_condition *conditions; 
+    uint32_t condition_count;               
+    uint64_t rule_bitmap;      
 };
 
-// 头节点作为哨兵不存储任何信息
-struct white_list {
-    struct rule_list_node** head;
+enum rule_list_type {
+    RULE_LIST_WHITE,
+    RULE_LIST_BLACK,
 };
 
-struct black_list {
-    struct rule_list_node** head;
+struct rule_list {
+    enum rule_list_type type;   // 白名单/黑名单
+    struct list_head nodes;     // 链表头
 };
 
-struct black_list* get_black_list(void);
+static struct rule_list *black_list_singleton = NULL;
+static struct rule_list *white_list_singleton = NULL;
 
-struct white_list* get_white_list(void);
+struct rule_list *get_rule_list(enum rule_list_type type);
 
-void add_black_list_rule(struct rule_list_node* new_rule_list_node);
-
-void relase_black_list(void);
+void release_rule_list(struct rule_list *list);
 
 uint64_t compute_bitmap(uint32_t size,
-                        struct match_condition* match_conditions);
+                        struct match_condition_msg *conditions);
 
-
-#endif
+#endif /* _RULE_H */

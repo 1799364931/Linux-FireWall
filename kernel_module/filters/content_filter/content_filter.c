@@ -1,6 +1,5 @@
 #include "content_filter.h"
 
-
 /**
  * 内容过滤Netfilter钩子函数
  * 逻辑：提取TCP负载 → 匹配目标字符串 → 命中则丢弃
@@ -11,7 +10,7 @@ unsigned int content_filter_hook(void* priv,
     void* payload;
     unsigned int payload_len;
     int ret;  // 用于存储skb_linearize的返回值
-    
+
     // 检查数据包有效性
     if (!skb) {
         return NF_ACCEPT;
@@ -26,36 +25,31 @@ unsigned int content_filter_hook(void* priv,
         return NF_ACCEPT;
     }
 
-    
     // 1. 提取TCP负载（仅处理TCP数据包，如HTTP、SSH等）
     payload = get_tcp_payload(skb, &payload_len);
     if (!payload) {
         return NF_ACCEPT;  // 非TCP数据包或无负载，放行
     }
 
-    struct black_list* black_list = get_black_list();
+    struct rule_list* while_list = get_rule_list(RULE_LIST_BLACK);
+    struct rule_list_node* mov;
+    // 黑名单过滤
 
-    struct rule_list_node* head = *(black_list->head);
-    struct rule_list_node* mov = head->next;
-
-    while (mov!=NULL){
-        // 判断是否有相关过滤规则
-        if(mov->rule_bitmap & RULE_CONTENT){
-            for(uint32_t i = 0;i<mov->match_condition_size;i++){
-                if(mov->rules[i].match_type == RULE_CONTENT){
+    list_for_each_entry(mov, &while_list->nodes, list) {
+        if (mov->rule_bitmap & RULE_CONTENT) {
+            for (uint32_t i = 0; i < mov->condition_count; i++) {
+                if (mov->conditions[i].match_type == RULE_CONTENT) {
                     // 遍历
-                    if(match_content(payload,payload_len,mov->rules[i].content_list)){
-                        // printk(KERN_DEBUG "ContentWall: Packet dropped (matched content)\n");
+                    if (match_content(payload, payload_len,
+                                      mov->conditions[i].content_list)) {
                         SKB_RULE_BITMAP(skb) |= RULE_CONTENT;
                     }
-                    
                 }
             }
         }
-        if(mov->rule_bitmap == SKB_RULE_BITMAP(skb)){
+        if (mov->rule_bitmap == SKB_RULE_BITMAP(skb)) {
             return NF_DROP;
         }
-        mov = mov->next;
     }
     // 未命中规则，放行
     return NF_ACCEPT;
@@ -123,7 +117,8 @@ static int match_content(void* payload,
             continue;
         }
         // 字符串匹配
-        // strnstr：在 payload 中查找 rule->target_str，最多查找 payload_len个字节
+        // strnstr：在 payload 中查找 rule->target_str，最多查找
+        // payload_len个字节
         if (strnstr((char*)payload, rule->target_str, payload_len)) {
             printk(KERN_DEBUG "ContentWall: Matched target string: %s\n",
                    rule->target_str);

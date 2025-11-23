@@ -28,7 +28,7 @@ void cmd_parser::build_parser() {
     parser_.add<std::string>("interface", 0, "interface", false);
 }
 
-std::optional<u_int32_t> cmd_parser::ip_parse(std::string ip_str) {
+std::optional<uint32_t> cmd_parser::ip_parse(std::string ip_str) {
     std::stringstream ss(ip_str);
     std::string segment;
     int count = 0;
@@ -97,12 +97,12 @@ std::optional<std::vector<char>> cmd_parser::mac_parse(std::string mac_str) {
     return mac_bytes;
 }
 
-const std::unordered_map<std::string, u_int16_t> cmd_parser::protos_ = {
+const std::unordered_map<std::string, uint16_t> cmd_parser::protos_ = {
     {"tcp", IPPROTO_TCP},
     {"udp", IPPROTO_UDP},
     {"icmp", IPPROTO_ICMP}};
 
-std::optional<u_int16_t> cmd_parser::proto_parse(std::string proto_str) {
+std::optional<uint16_t> cmd_parser::proto_parse(std::string proto_str) {
     auto it = protos_.find(proto_str);
     if (it != protos_.end()) {
         return it->second;
@@ -213,10 +213,109 @@ std::optional<std::vector<std::string>> cmd_parser::content_parse(
     return result;
 }
 
-void cmd_parser::parse_args(){
+#include "../../public_structs/match_condition_msg.h"
+#include "../../public_structs/rule_bitmap.h"
+void cmd_parser::parse_args(uint32_t argc) {
     // 构造结构体
-    
-    if(parser_.exist("src-ip")){
-        
+
+    std::vector<char> buffer;
+    uint32_t total_rule_entry_msg_size =
+        sizeof(struct match_condition_msg) * argc +
+        sizeof(struct rule_entry_msg);
+    uint32_t buffer_offset = 0;
+    uint32_t buffer_len = 0;
+    uint64_t bitmap = 0;
+
+    struct rule_entry_msg* entry =
+        (struct rule_entry_msg*)malloc(total_rule_entry_msg_size);
+
+    // ip 处理
+    if (parser_.exist("src-ip")) {
+        auto ip = ip_parse(parser_.get<std::string>("src-ip"));
+        if (ip.has_value()) {
+            entry->conditions[entry->condition_count].src_ip = ip.value();
+            entry->condition_count++;
+        } else {
+            // 失败处理
+            return;
+        }
     }
+
+    if (parser_.exist("dst-ip")) {
+        auto ip = ip_parse(parser_.get<std::string>("dst-ip"));
+        if (ip.has_value()) {
+            entry->conditions[entry->condition_count].dst_ip = ip.value();
+            entry->condition_count++;
+        } else {
+            // 失败处理
+            return;
+        }
+    }
+
+    if (parser_.exist("src-ip-mask")) {
+        auto ip = ip_parse(parser_.get<std::string>("src-ip-mask"));
+        if (ip.has_value()) {
+            entry->conditions[entry->condition_count].src_mask_ip = ip.value();
+            entry->condition_count++;
+        } else {
+            // 失败处理
+            return;
+        }
+    }
+
+    if (parser_.exist("dst-ip-mask")) {
+        auto ip = ip_parse(parser_.get<std::string>("dst-ip-mask"));
+        if (ip.has_value()) {
+            entry->conditions[entry->condition_count].dst_mask_ip = ip.value();
+            entry->condition_count++;
+        } else {
+            // 失败处理
+            return;
+        }
+    }
+
+    // port 处理
+    if (parser_.exist("src-port")) {
+        auto port = parser_.get<int>("src-port");
+        if (0 <= port <= 65535) {
+            entry->conditions[entry->condition_count].src_port = port;
+            entry->condition_count++;
+        } else {
+            // 失败处理
+            return;
+        }
+    }
+
+    if (parser_.exist("dst-port")) {
+        auto port = parser_.get<int>("dst-port");
+        if (0 <= port <= 65535) {
+            entry->conditions[entry->condition_count].dst_port = port;
+            entry->condition_count++;
+        } else {
+            // 失败处理
+            return;
+        }
+    }
+
+    // 处理mac
+    if (parser_.exist("src-mac")) {
+        auto mac = mac_parse(parser_.get<std::string>("src-mac"));
+        if (mac.has_value()) {
+            memcpy(mac.value().data(),
+                   entry->conditions[entry->condition_count].src_mac,
+                   MAC_LENGTH);
+        }
+    }
+
+    if (parser_.exist("dst-mac")) {
+        auto mac = mac_parse(parser_.get<std::string>("dst-mac"));
+        if (mac.has_value()) {
+            memcpy(mac.value().data(),
+                   entry->conditions[entry->condition_count].dst_mac,
+                   MAC_LENGTH);
+        }
+    }
+
+    //处理proto
+    
 }

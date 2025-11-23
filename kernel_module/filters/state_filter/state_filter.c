@@ -1,6 +1,5 @@
 #include "state_filter.h"
 
-
 /**
  * 状态过滤Netfilter钩子函数
  * 逻辑：解析TCP状态 → 只允许已建立连接的数据包通过
@@ -14,14 +13,14 @@ unsigned int state_filter_hook(void* priv,
     }
 
     struct black_list* black_list = get_black_list();
+    struct rule_list* while_list = get_rule_list(RULE_LIST_BLACK);
+    struct rule_list_node* mov;
+    // 黑名单过滤
 
-    struct rule_list_node* head = *(black_list->head);
-    struct rule_list_node* mov = head->next;
-
-    while (mov != NULL) {
+    list_for_each_entry(mov, &while_list->nodes, list) {
         if (mov->rule_bitmap & RULE_STATE_POLICY_DENY_ALL_NEW) {
-            for (uint32_t i = 0; i < mov->match_condition_size; i++) {
-                if (mov->rules[i].match_type ==
+            for (uint32_t i = 0; i < mov->condition_count; i++) {
+                if (mov->conditions[i].match_type ==
                     RULE_STATE_POLICY_DENY_ALL_NEW) {
                     if (!check_tcp_state(skb)) {
                         SKB_RULE_BITMAP(skb) |= RULE_STATE_POLICY_DENY_ALL_NEW;
@@ -32,7 +31,6 @@ unsigned int state_filter_hook(void* priv,
         if (mov->rule_bitmap == SKB_RULE_BITMAP(skb)) {
             return NF_DROP;
         }
-        mov = mov->next;
     }
 
     // 检查连接状态，允许则放行，否则丢弃
@@ -40,7 +38,6 @@ unsigned int state_filter_hook(void* priv,
     // 拒绝所有无效状态的数据包
     return NF_DROP;
 }
-
 
 /**
  * 解析TCP连接状态（核心函数）

@@ -33,18 +33,17 @@ unsigned int time_filter_hook(void* priv,
         如果 现在时间不属于规则包含时间 如果是丢弃就不管
         需要找到所有的接收时间的并集
     */
-    struct black_list* black_list = get_black_list();
+    struct rule_list* while_list = get_rule_list(RULE_LIST_BLACK);
+    struct rule_list_node* mov;
+    // 黑名单过滤
 
-    struct rule_list_node* head = *(black_list->head);
-    struct rule_list_node* mov = head->next;
-
-    while (mov != NULL) {
+    list_for_each_entry(mov, &while_list->nodes, list) {
         if (mov->rule_bitmap & RULE_TIME) {
-            for (uint32_t i = 0; i < mov->match_condition_size; i++) {
-                if (mov->rules[i].match_type == RULE_TIME) {
+            for (uint32_t i = 0; i < mov->condition_count; i++) {
+                if (mov->conditions[i].match_type == RULE_TIME) {
                     uint32_t accept_count = 0, drop_count = 0;
-                    list_for_each_entry(time_rule,
-                                        &mov->rules[i].time_list->head, list) {
+                    list_for_each_entry(
+                        time_rule, &mov->conditions[i].time_list->head, list) {
                         /* 检查当前时间是否在规则范围内 */
                         if (check_time_in_range(
                                 time_rule->start_hour, time_rule->start_min,
@@ -66,7 +65,6 @@ unsigned int time_filter_hook(void* priv,
             if (mov->rule_bitmap == SKB_RULE_BITMAP(skb)) {
                 return NF_DROP;
             }
-            mov = mov->next;
         }
     }
 
