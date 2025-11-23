@@ -28,6 +28,8 @@ firewallctl [命令] [选项1] [参数1] [选项2] [参数2]
 #### 1.2.2 选项
 + `--src-ip`
 + `--dst-ip`
++ `--src-ip-mask`
++ `--dst-ip-mask`
 + `--dst-port`
 + `--src-port`
 + `--dst-mac`
@@ -36,9 +38,9 @@ firewallctl [命令] [选项1] [参数1] [选项2] [参数2]
 + `--time-drop` 丢弃这段时间内的数据包
 + `--time-accept` 只允许这段时间内的数据包
 + `--est` 只允许建立连接的数据包通过
-+ `--context str1 str2 str3 ....` 过滤包含这些关键字的包
++ `--content "str1" "str2" "str3" ....` 过滤包含这些关键字的包
 + `--interface` 过滤对应的接口
-+ `
++ ` 
 + `--drop / --accept` 黑名单/白名单模式下有效
 + `--mode W/B w/b` 
  
