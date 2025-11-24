@@ -20,10 +20,6 @@ struct time_rule {
     unsigned long accept_match_count;
 };
 
-/* 动作定义 */
-#define ACTION_ACCEPT 0
-#define ACTION_DROP 1
-
 /* 时间规则链表 */
 struct time_rule_list {
     struct list_head head;

@@ -5,5 +5,6 @@
 
 int main(int argc, char* argv[]) {
     cmd_parser parser;
+    netlink_tool netlink_tool();
     parser.get_parser().parse_check(argc,argv);
 }
