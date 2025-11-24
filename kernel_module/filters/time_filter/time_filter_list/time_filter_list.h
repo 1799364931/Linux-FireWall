@@ -16,8 +16,6 @@ struct time_rule {
     int end_hour;   /* 结束小时 (0-23) */
     int end_min;    /* 结束分钟 (0-59) */
 
-    int action; /* 动作: 0=ACCEPT, 1=DROP */
-
     unsigned long drop_match_count; /* 匹配次数统计 */
     unsigned long accept_match_count;
 };
@@ -60,7 +58,6 @@ int add_time_rule(int start_hour,
                   int start_min,
                   int end_hour,
                   int end_min,
-                  int action,
                   struct time_rule_list* time_list);
 
 /**

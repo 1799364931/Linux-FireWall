@@ -1,6 +1,5 @@
 #include "time_filter_list.h"
 
-
 /**
  * init_time_rules - 初始化时间规则系统
  */
@@ -34,7 +33,6 @@ int add_time_rule(int start_hour,
                   int start_min,
                   int end_hour,
                   int end_min,
-                  int action,
                   struct time_rule_list* time_list) {
     struct time_rule* new_rule;
 
@@ -42,11 +40,6 @@ int add_time_rule(int start_hour,
     if (start_hour < 0 || start_hour > 23 || end_hour < 0 || end_hour > 23 ||
         start_min < 0 || start_min > 59 || end_min < 0 || end_min > 59) {
         printk(KERN_WARNING "TimeWall: Invalid time parameters\n");
-        return -EINVAL;
-    }
-
-    if (action != ACTION_ACCEPT && action != ACTION_DROP) {
-        printk(KERN_WARNING "TimeWall: Invalid action\n");
         return -EINVAL;
     }
 
@@ -62,15 +55,13 @@ int add_time_rule(int start_hour,
     new_rule->start_min = start_min;
     new_rule->end_hour = end_hour;
     new_rule->end_min = end_min;
-    new_rule->action = action;
 
     /* 添加到链表 */
     list_add_tail(&new_rule->list, &time_list->head);
     time_list->count++;
 
-    printk(KERN_INFO "TimeWall: Added rule - %02d:%02d-%02d:%02d action=%s\n",
-           start_hour, start_min, end_hour, end_min,
-           action == ACTION_ACCEPT ? "ACCEPT" : "DROP");
+    printk(KERN_INFO "TimeWall: Added rule - %02d:%02d-%02d:%02d\n",
+           start_hour, start_min, end_hour, end_min);
 
     return 0;
 }

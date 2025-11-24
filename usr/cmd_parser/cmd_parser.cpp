@@ -111,21 +111,37 @@ std::optional<uint16_t> cmd_parser::proto_parse(std::string proto_str) {
 }
 
 // "xx:xx xx:xx"
-std::optional<std::vector<std::pair<int, int>>> cmd_parser::time_parse(
-    std::string time_str) {
-    // 去掉首尾引号
+std::optional<std::vector<std::pair<std::pair<int, int>, std::pair<int, int>>>>
+cmd_parser::time_parse(std::string time_str) {
+    // 去掉外层引号
     if (time_str.size() >= 2 && time_str.front() == '"' &&
         time_str.back() == '"') {
         time_str = time_str.substr(1, time_str.size() - 2);
     } else {
-        return std::nullopt;  // 必须有双引号
+        return std::nullopt;  // 必须有外层双引号
     }
 
-    std::stringstream ss(time_str);
-    std::string t1, t2;
+    // 提取内部所有被引号包裹的子串
+    std::vector<std::string> groups;
+    {
+        bool in_quote = false;
+        std::string current;
+        for (char c : time_str) {
+            if (c == '"') {
+                if (!in_quote) {
+                    in_quote = true;
+                    current.clear();
+                } else {
+                    in_quote = false;
+                    groups.push_back(current);
+                }
+            } else if (in_quote) {
+                current.push_back(c);
+            }
+        }
+    }
 
-    // 分割两个时间
-    if (!(ss >> t1 >> t2))
+    if (groups.empty())
         return std::nullopt;
 
     auto parse_time =
@@ -140,22 +156,31 @@ std::optional<std::vector<std::pair<int, int>>> cmd_parser::time_parse(
 
         int hour = std::stoi(t.substr(0, 2));
         int minute = std::stoi(t.substr(3, 2));
-
         if (hour < 0 || hour > 23 || minute < 0 || minute > 59)
             return std::nullopt;
 
         return std::make_pair(hour, minute);
     };
 
-    auto p1 = parse_time(t1);
-    auto p2 = parse_time(t2);
+    std::vector<std::pair<std::pair<int, int>, std::pair<int, int>>> result;
 
-    if (!p1 || !p2)
-        return std::nullopt;
+    // 每个子串必须恰好包含两个时间
+    for (const auto& g : groups) {
+        std::stringstream ss(g);
+        std::string t1, t2;
+        if (!(ss >> t1 >> t2))
+            return std::nullopt;
+        std::string extra;
+        if (ss >> extra)
+            return std::nullopt;
 
-    std::vector<std::pair<int, int>> result;
-    result.push_back(*p1);
-    result.push_back(*p2);
+        auto p1 = parse_time(t1);
+        auto p2 = parse_time(t2);
+        if (!p1 || !p2)
+            return std::nullopt;
+
+        result.emplace_back(*p1, *p2);
+    }
 
     return result;
 }
@@ -218,24 +243,21 @@ std::optional<std::vector<std::string>> cmd_parser::content_parse(
 void cmd_parser::parse_args(uint32_t argc) {
     // 构造结构体
 
-    std::vector<char> buffer;
     uint32_t total_rule_entry_msg_size =
         sizeof(struct match_condition_msg) * argc +
         sizeof(struct rule_entry_msg);
-    uint32_t buffer_offset = 0;
-    uint32_t buffer_len = 0;
 
-    struct rule_entry_msg* entry =
-        (struct rule_entry_msg*)malloc(total_rule_entry_msg_size);
+    entry_ = (struct rule_entry_msg*)malloc(total_rule_entry_msg_size);
 
     // ip 处理
     if (parser_.exist("src-ip")) {
         auto ip = ip_parse(parser_.get<std::string>("src-ip"));
         if (ip.has_value()) {
-            entry->conditions[entry->condition_count].src_ip = ip.value();
-            entry->conditions[entry->condition_count].match_type = RULE_SRC_IP;
-            entry->bitmap &= RULE_SRC_IP;
-            entry->condition_count++;
+            entry_->conditions[entry_->condition_count].src_ip = ip.value();
+            entry_->conditions[entry_->condition_count].match_type =
+                RULE_SRC_IP;
+            entry_->bitmap &= RULE_SRC_IP;
+            entry_->condition_count++;
         } else {
             // 失败处理
             return;
@@ -245,10 +267,11 @@ void cmd_parser::parse_args(uint32_t argc) {
     if (parser_.exist("dst-ip")) {
         auto ip = ip_parse(parser_.get<std::string>("dst-ip"));
         if (ip.has_value()) {
-            entry->conditions[entry->condition_count].dst_ip = ip.value();
-            entry->conditions[entry->condition_count].match_type = RULE_DST_IP;
-            entry->bitmap &= RULE_DST_IP;
-            entry->condition_count++;
+            entry_->conditions[entry_->condition_count].dst_ip = ip.value();
+            entry_->conditions[entry_->condition_count].match_type =
+                RULE_DST_IP;
+            entry_->bitmap &= RULE_DST_IP;
+            entry_->condition_count++;
         } else {
             // 失败处理
             return;
@@ -258,11 +281,12 @@ void cmd_parser::parse_args(uint32_t argc) {
     if (parser_.exist("src-ip-mask")) {
         auto ip = ip_parse(parser_.get<std::string>("src-ip-mask"));
         if (ip.has_value()) {
-            entry->conditions[entry->condition_count].src_mask_ip = ip.value();
-            entry->conditions[entry->condition_count].match_type =
+            entry_->conditions[entry_->condition_count].src_mask_ip =
+                ip.value();
+            entry_->conditions[entry_->condition_count].match_type =
                 RULE_SRC_IP_MASK;
-            entry->bitmap &= RULE_SRC_IP_MASK;
-            entry->condition_count++;
+            entry_->bitmap &= RULE_SRC_IP_MASK;
+            entry_->condition_count++;
         } else {
             // 失败处理
             return;
@@ -272,11 +296,12 @@ void cmd_parser::parse_args(uint32_t argc) {
     if (parser_.exist("dst-ip-mask")) {
         auto ip = ip_parse(parser_.get<std::string>("dst-ip-mask"));
         if (ip.has_value()) {
-            entry->conditions[entry->condition_count].dst_mask_ip = ip.value();
-            entry->conditions[entry->condition_count].match_type =
+            entry_->conditions[entry_->condition_count].dst_mask_ip =
+                ip.value();
+            entry_->conditions[entry_->condition_count].match_type =
                 RULE_DST_IP_MASK;
-            entry->bitmap &= RULE_DST_IP_MASK;
-            entry->condition_count++;
+            entry_->bitmap &= RULE_DST_IP_MASK;
+            entry_->condition_count++;
         } else {
             // 失败处理
             return;
@@ -287,12 +312,12 @@ void cmd_parser::parse_args(uint32_t argc) {
     if (parser_.exist("src-port")) {
         auto port = parser_.get<int>("src-port");
         if (0 <= port <= 65535) {
-            entry->conditions[entry->condition_count].src_port = port;
-            entry->conditions[entry->condition_count].match_type =
+            entry_->conditions[entry_->condition_count].src_port = port;
+            entry_->conditions[entry_->condition_count].match_type =
                 RULE_SRC_PORT;
-            entry->bitmap &= RULE_SRC_PORT;
+            entry_->bitmap &= RULE_SRC_PORT;
 
-            entry->condition_count++;
+            entry_->condition_count++;
         } else {
             // 失败处理
             return;
@@ -302,11 +327,11 @@ void cmd_parser::parse_args(uint32_t argc) {
     if (parser_.exist("dst-port")) {
         auto port = parser_.get<int>("dst-port");
         if (0 <= port <= 65535) {
-            entry->conditions[entry->condition_count].dst_port = port;
-            entry->conditions[entry->condition_count].match_type =
+            entry_->conditions[entry_->condition_count].dst_port = port;
+            entry_->conditions[entry_->condition_count].match_type =
                 RULE_DST_PORT;
-            entry->bitmap &= RULE_DST_PORT;
-            entry->condition_count++;
+            entry_->bitmap &= RULE_DST_PORT;
+            entry_->condition_count++;
         } else {
             // 失败处理
             return;
@@ -318,11 +343,12 @@ void cmd_parser::parse_args(uint32_t argc) {
         auto mac = mac_parse(parser_.get<std::string>("src-mac"));
         if (mac.has_value()) {
             memcpy(mac.value().data(),
-                   entry->conditions[entry->condition_count].src_mac,
+                   entry_->conditions[entry_->condition_count].src_mac,
                    MAC_LENGTH);
-            entry->conditions[entry->condition_count].match_type = RULE_SRC_MAC;
-            entry->bitmap &= RULE_SRC_MAC;
-            entry->condition_count++;
+            entry_->conditions[entry_->condition_count].match_type =
+                RULE_SRC_MAC;
+            entry_->bitmap &= RULE_SRC_MAC;
+            entry_->condition_count++;
         } else {
             // 失败处理
             return;
@@ -333,11 +359,12 @@ void cmd_parser::parse_args(uint32_t argc) {
         auto mac = mac_parse(parser_.get<std::string>("dst-mac"));
         if (mac.has_value()) {
             memcpy(mac.value().data(),
-                   entry->conditions[entry->condition_count].dst_mac,
+                   entry_->conditions[entry_->condition_count].dst_mac,
                    MAC_LENGTH);
-            entry->conditions[entry->condition_count].match_type = RULE_DST_MAC;
-            entry->bitmap &= RULE_DST_MAC;
-            entry->condition_count++;
+            entry_->conditions[entry_->condition_count].match_type =
+                RULE_DST_MAC;
+            entry_->bitmap &= RULE_DST_MAC;
+            entry_->condition_count++;
         } else {
             // 失败处理
             return;
@@ -348,12 +375,12 @@ void cmd_parser::parse_args(uint32_t argc) {
     if (parser_.exist("proto")) {
         auto proto = proto_parse(parser_.get<std::string>("proto"));
         if (proto.has_value()) {
-            entry->conditions[entry->condition_count].ipv4_protocol =
+            entry_->conditions[entry_->condition_count].ipv4_protocol =
                 proto.value();
-            entry->conditions[entry->condition_count].match_type =
+            entry_->conditions[entry_->condition_count].match_type =
                 RULE_IPV4_PROTOCOL;
-            entry->bitmap &= RULE_IPV4_PROTOCOL;
-            entry->condition_count++;
+            entry_->bitmap &= RULE_IPV4_PROTOCOL;
+            entry_->condition_count++;
         } else {
             // 失败处理
             return;
@@ -362,10 +389,10 @@ void cmd_parser::parse_args(uint32_t argc) {
 
     // 处理状态连接过滤开关
     if (parser_.exist("est")) {
-        entry->conditions[entry->condition_count].match_type =
+        entry_->conditions[entry_->condition_count].match_type =
             RULE_STATE_POLICY_DENY_ALL_NEW;
-        entry->bitmap &= RULE_STATE_POLICY_DENY_ALL_NEW;
-        entry->condition_count++;
+        entry_->bitmap &= RULE_STATE_POLICY_DENY_ALL_NEW;
+        entry_->condition_count++;
     }
 
     // 处理content
@@ -380,8 +407,8 @@ void cmd_parser::parse_args(uint32_t argc) {
             for (auto& str : contents.value()) {
                 total_size += str.length();
             }
-            buffer.resize(total_size);
-            auto ptr = buffer.data();
+            buffer_.resize(total_size);
+            auto ptr = buffer_.data();
             int len = static_cast<int>(contents.value().size());
             std::memcpy(ptr, &len, sizeof(len));
             auto start = ptr;
@@ -393,7 +420,14 @@ void cmd_parser::parse_args(uint32_t argc) {
                 std::memcpy(ptr, str.data(), str.length());
                 ptr += str.length();
             }
-            buffer_offset = ptr - start;
+            buffer_offset_ = ptr - start;
+            entry_->conditions[entry_->condition_count].buffer_offset = 0;
+            entry_->conditions[entry_->condition_count].buffer_len =
+                buffer_offset_;
+            entry_->conditions[entry_->condition_count].match_type =
+                RULE_CONTENT;
+            entry_->bitmap &= RULE_CONTENT;
+            entry_->condition_count++;
         } else {
             // 失败处理
             return;
@@ -401,6 +435,96 @@ void cmd_parser::parse_args(uint32_t argc) {
     }
 
     // 处理time
+    if (parser_.exist("time-drop")) {
+        // [时间对个数] [HH:MM][HH:MM] 一个时间对2*4 = 8字节
+        auto times = time_parse(parser_.get<std::string>("time-drop"));
+        if (times.has_value()) {
+            buffer_.resize(buffer_.size() + 1 +
+                           sizeof(uint32_t) * 2 * times.value().size());
+            auto ptr = buffer_.data() + buffer_offset_;
+            auto start = ptr;
+            auto number_cpy = [&](uint32_t num) {
+                uint32_t tmp = num;
+                std::memcpy(ptr, &tmp, sizeof(uint32_t));
+                ptr += sizeof(uint32_t);
+            };
+            number_cpy(times.value().size());
+            for (auto& time : times.value()) {
+                auto [h, m] = time;
+                number_cpy(h.first);
+                number_cpy(h.second);
+                number_cpy(m.first);
+                number_cpy(m.second);
+            }
+            //
+            entry_->conditions[entry_->condition_count].buffer_len =
+                1 + sizeof(uint32_t) * 2 * times.value().size();
+            entry_->conditions[entry_->condition_count].buffer_offset =
+                buffer_offset_;
+            buffer_offset_ = buffer_.size();
+            entry_->conditions[entry_->condition_count].match_type =
+                RULE_TIME_DROP;
+            entry_->bitmap &= RULE_TIME_DROP;
+        } else {
+            // 失败处理
+            return;
+        }
+    }
+    if (parser_.exist("time-accept")) {
+        // [时间对个数] [HH:MM][HH:MM] 一个时间对2*4 = 8字节
+        auto times = time_parse(parser_.get<std::string>("time-accept"));
+        if (times.has_value()) {
+            buffer_.resize(buffer_.size() + 1 +
+                           sizeof(uint32_t) * 2 * times.value().size());
+            auto ptr = buffer_.data() + buffer_offset_;
+            auto start = ptr;
+            auto number_cpy = [&](uint32_t num) {
+                uint32_t tmp = num;
+                std::memcpy(ptr, &tmp, sizeof(uint32_t));
+                ptr += sizeof(uint32_t);
+            };
+            number_cpy(times.value().size());
+            for (auto& time : times.value()) {
+                auto [h, m] = time;
+                number_cpy(h.first);
+                number_cpy(h.second);
+                number_cpy(m.first);
+                number_cpy(m.second);
+            }
+            //
+            entry_->conditions[entry_->condition_count].buffer_len =
+                1 + sizeof(uint32_t) * 2 * times.value().size();
+            entry_->conditions[entry_->condition_count].buffer_offset =
+                buffer_offset_;
+            buffer_offset_ = buffer_.size();
+            entry_->conditions[entry_->condition_count].match_type =
+                RULE_TIME_ACCEPT;
+            entry_->bitmap &= RULE_TIME_ACCEPT;
+            entry_->condition_count++;
+        } else {
+            // 失败处理
+            return;
+        }
+    }
 
     // 处理interface
+    if (parser_.exist("interface")) {
+        // [长度][字符串]
+        auto interface = parser_.get<std::string>("interface");
+        buffer_.resize(buffer_.size() + interface.length() + 1);
+        auto ptr = buffer_.data() + buffer_offset_;
+        auto start = ptr;
+        uint32_t len = interface.length();
+        std::memcpy(ptr, &len, sizeof(uint32_t));
+        ptr += sizeof(uint32_t);
+        std::memcpy(ptr, interface.data(), interface.length());
+        entry_->conditions[entry_->condition_count].buffer_offset =
+            buffer_offset_;
+        buffer_offset_ = buffer_.size();
+        entry_->conditions[entry_->condition_count].buffer_len =
+            interface.length() + 1;
+        entry_->conditions[entry_->condition_count].match_type = RULE_INTERFACE;
+        entry_->bitmap &= RULE_INTERFACE;
+        entry_->condition_count++;
+    }
 }

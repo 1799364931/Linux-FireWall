@@ -38,9 +38,10 @@ unsigned int time_filter_hook(void* priv,
     // 黑名单过滤
 
     list_for_each_entry(mov, &while_list->nodes, list) {
-        if (mov->rule_bitmap & RULE_TIME) {
+        if (mov->rule_bitmap & (RULE_TIME_ACCEPT | RULE_TIME_DROP)) {
             for (uint32_t i = 0; i < mov->condition_count; i++) {
-                if (mov->conditions[i].match_type == RULE_TIME) {
+                if (mov->conditions[i].match_type == RULE_TIME_ACCEPT ||
+                    mov->conditions[i].match_type == RULE_TIME_DROP) {
                     uint32_t accept_count = 0, drop_count = 0;
                     list_for_each_entry(
                         time_rule, &mov->conditions[i].time_list->head, list) {
@@ -49,7 +50,7 @@ unsigned int time_filter_hook(void* priv,
                                 time_rule->start_hour, time_rule->start_min,
                                 time_rule->end_hour, time_rule->end_min)) {
                             /* 更新匹配计数 */
-                            if (time_rule->action = ACTION_ACCEPT) {
+                            if (mov->conditions[i].match_type == RULE_TIME_ACCEPT) {
                                 accept_count++;
                             } else {
                                 drop_count++;
@@ -57,8 +58,11 @@ unsigned int time_filter_hook(void* priv,
                         }
                     }
                     // 遍历完毕后判断是否应该丢弃
-                    if (drop_count || !accept_count) {
-                        SKB_RULE_BITMAP(skb) |= RULE_TIME;
+                    if (drop_count){
+                        SKB_RULE_BITMAP(skb) |= RULE_TIME_DROP;
+                    }
+                    if (!accept_count) {
+                        SKB_RULE_BITMAP(skb) |= RULE_TIME_ACCEPT;
                     }
                 }
             }
