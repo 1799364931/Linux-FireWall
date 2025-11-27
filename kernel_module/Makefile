@@ -1,25 +1,28 @@
-# 顶层 Makefile
+# kernel_module/Makefile
 
-obj-m := myfirewall.o
-
-# firewall.o 由多个子模块组成
-myfirewall-objs := firewall.o\
-                 rule/rule.o \
-                 mac_filter/mac_filter.o \
-                 port_filter/port_filter.o \
-                 protocol_filter/ipv4_protocol.o \
-				 ip_filter/ip_filter.o \
-
-# 内核源码路径（自动获取当前内核）
+# 指向内核源码目录
 KDIR := /lib/modules/$(shell uname -r)/build
+PWD  := $(shell pwd)
+EXTRA_CFLAGS += -I$(PWD)/../public_structs
 
-# 当前目录
-PWD := $(shell pwd)
+# 模块源文件
+obj-m += myfirewall.o
 
-# 默认目标：构建模块
+# 改成myfirewall 避免循环依赖
+myfirewall-objs := firewall.o \
+                 rule/rule.o \
+                 filters/interface_filter/interface_filter.o \
+                 filters/time_filter/time_filter.o \
+                 filters/time_filter/time_filter_list/time_filter_list.o \
+                 filters/mac_filter/mac_filter.o \
+                 filters/content_filter/content_filter.o \
+                 filters/content_filter/content_filter_list/conten_filter_list.o \
+                 filters/protocol_filter/ipv4_protocol.o \
+                 filters/state_filter/state_filter.o \
+                 filters/port_filter/port_filter.o \
+                 filters/ip_filter/ip_filter.o
 all:
 	$(MAKE) -C $(KDIR) M=$(PWD) modules
 
-# 清理目标
 clean:
 	$(MAKE) -C $(KDIR) M=$(PWD) clean

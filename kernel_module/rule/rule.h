@@ -59,6 +59,6 @@ struct rule_list *get_rule_list(enum rule_list_type type);
 void release_rule_list(struct rule_list *list);
 
 uint64_t compute_bitmap(uint32_t size,
-                        struct match_condition_msg *conditions);
+                        struct match_condition *conditions);
 
 #endif /* _RULE_H */

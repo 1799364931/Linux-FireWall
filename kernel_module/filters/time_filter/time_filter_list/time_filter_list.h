@@ -6,6 +6,7 @@
 
 #include <linux/list.h>
 #include <linux/time.h>
+#include <linux/slab.h>
 
 /* 时间规则结构 */
 struct time_rule {

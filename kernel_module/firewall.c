@@ -14,8 +14,6 @@
 #include "filters/protocol_filter/protocol.h"
 #include "filters/state_filter/state_filter.h"
 #include "filters/time_filter/time_filter.h"
-#include "rule/rule.h"
-#include "rule/rule_bitmap.h"
 
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("Kotori");
@@ -80,22 +78,22 @@ static int __init firewall_init(void) {
     // 初始化规则链表
 
     // ip:192.168.119.134 port:22 protocol = tcp
-    struct match_condition match_conditions[3];
-    match_conditions[0].src_ip = in_aton("192.168.119.134");
-    match_conditions[0].match_type = RULE_SRC_IP;
-    match_conditions[1].dst_port = htons(22);
-    match_conditions[1].match_type = RULE_DST_PORT;
-    match_conditions[2].ipv4_protocol = IPPROTO_TCP;
-    match_conditions[2].match_type = RULE_IPV4_PROTOCOL;
+    // struct match_condition match_conditions[3];
+    // match_conditions[0].src_ip = in_aton("192.168.119.134");
+    // match_conditions[0].match_type = RULE_SRC_IP;
+    // match_conditions[1].dst_port = htons(22);
+    // match_conditions[1].match_type = RULE_DST_PORT;
+    // match_conditions[2].ipv4_protocol = IPPROTO_TCP;
+    // match_conditions[2].match_type = RULE_IPV4_PROTOCOL;
 
-    struct rule_list_node* new_rule_list_node = (struct rule_list_node*)kmalloc(
-        sizeof(struct rule_list_node), GFP_KERNEL);
-    new_rule_list_node->conditions = match_conditions;
-    new_rule_list_node->condition_count = 3;
-    new_rule_list_node->rule_bitmap = compute_bitmap(
-        new_rule_list_node->condition_count, new_rule_list_node->conditions);
+    // struct rule_list_node* new_rule_list_node = (struct rule_list_node*)kmalloc(
+    //     sizeof(struct rule_list_node), GFP_KERNEL);
+    // new_rule_list_node->conditions = match_conditions;
+    // new_rule_list_node->condition_count = 3;
+    // new_rule_list_node->rule_bitmap = compute_bitmap(
+    //     new_rule_list_node->condition_count, new_rule_list_node->conditions);
 
-    add_black_list_rule(new_rule_list_node);
+    // add_black_list_rule(new_rule_list_node);
 
     printk(KERN_INFO "Firewall module: Initializing...\n");
 

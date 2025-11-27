@@ -311,12 +311,11 @@ void cmd_parser::parse_args(uint32_t argc) {
     // port 处理
     if (parser_.exist("src-port")) {
         auto port = parser_.get<int>("src-port");
-        if (0 <= port <= 65535) {
+        if (0 <= port && port <= 65535) {
             entry_->conditions[entry_->condition_count].src_port = port;
             entry_->conditions[entry_->condition_count].match_type =
                 RULE_SRC_PORT;
             entry_->bitmap &= RULE_SRC_PORT;
-
             entry_->condition_count++;
         } else {
             // 失败处理
@@ -326,7 +325,7 @@ void cmd_parser::parse_args(uint32_t argc) {
 
     if (parser_.exist("dst-port")) {
         auto port = parser_.get<int>("dst-port");
-        if (0 <= port <= 65535) {
+        if (0 <= port && port <= 65535) {
             entry_->conditions[entry_->condition_count].dst_port = port;
             entry_->conditions[entry_->condition_count].match_type =
                 RULE_DST_PORT;
@@ -442,7 +441,6 @@ void cmd_parser::parse_args(uint32_t argc) {
             buffer_.resize(buffer_.size() + 1 +
                            sizeof(uint32_t) * 2 * times.value().size());
             auto ptr = buffer_.data() + buffer_offset_;
-            auto start = ptr;
             auto number_cpy = [&](uint32_t num) {
                 uint32_t tmp = num;
                 std::memcpy(ptr, &tmp, sizeof(uint32_t));
@@ -477,7 +475,6 @@ void cmd_parser::parse_args(uint32_t argc) {
             buffer_.resize(buffer_.size() + 1 +
                            sizeof(uint32_t) * 2 * times.value().size());
             auto ptr = buffer_.data() + buffer_offset_;
-            auto start = ptr;
             auto number_cpy = [&](uint32_t num) {
                 uint32_t tmp = num;
                 std::memcpy(ptr, &tmp, sizeof(uint32_t));
@@ -513,7 +510,6 @@ void cmd_parser::parse_args(uint32_t argc) {
         auto interface = parser_.get<std::string>("interface");
         buffer_.resize(buffer_.size() + interface.length() + 1);
         auto ptr = buffer_.data() + buffer_offset_;
-        auto start = ptr;
         uint32_t len = interface.length();
         std::memcpy(ptr, &len, sizeof(uint32_t));
         ptr += sizeof(uint32_t);

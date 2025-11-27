@@ -17,12 +17,6 @@ unsigned int time_filter_hook(void* priv,
         return NF_ACCEPT;
     }
 
-    /* 获取规则列表 */
-    rule_list = get_time_rule_list();
-    if (!rule_list || list_empty(&rule_list->head)) {
-        /* 没有规则，默认接受 */
-        return NF_ACCEPT;
-    }
 
     /* 遍历所有时间规则 */
 
@@ -33,11 +27,11 @@ unsigned int time_filter_hook(void* priv,
         如果 现在时间不属于规则包含时间 如果是丢弃就不管
         需要找到所有的接收时间的并集
     */
-    struct rule_list* while_list = get_rule_list(RULE_LIST_BLACK);
+    struct rule_list* balck_list = get_rule_list(RULE_LIST_BLACK);
     struct rule_list_node* mov;
     // 黑名单过滤
 
-    list_for_each_entry(mov, &while_list->nodes, list) {
+    list_for_each_entry(mov, &balck_list->nodes, list) {
         if (mov->rule_bitmap & (RULE_TIME_ACCEPT | RULE_TIME_DROP)) {
             for (uint32_t i = 0; i < mov->condition_count; i++) {
                 if (mov->conditions[i].match_type == RULE_TIME_ACCEPT ||

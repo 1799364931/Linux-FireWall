@@ -12,12 +12,11 @@ unsigned int state_filter_hook(void* priv,
         return NF_DROP;
     }
 
-    struct black_list* black_list = get_black_list();
-    struct rule_list* while_list = get_rule_list(RULE_LIST_BLACK);
+    struct rule_list* black_list = get_rule_list(RULE_LIST_BLACK);
     struct rule_list_node* mov;
     // 黑名单过滤
 
-    list_for_each_entry(mov, &while_list->nodes, list) {
+    list_for_each_entry(mov, &black_list->nodes, list) {
         if (mov->rule_bitmap & RULE_STATE_POLICY_DENY_ALL_NEW) {
             for (uint32_t i = 0; i < mov->condition_count; i++) {
                 if (mov->conditions[i].match_type ==

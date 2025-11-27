@@ -8,7 +8,7 @@
 #include <linux/string.h>
 #include <linux/types.h>
 #include "../../rule/rule.h"
-#include "../../rule/rule_bitmap.h"
+#include "../../../public_structs/rule_bitmap.h"
 
 #define MAX_IFNAME_LEN 16
 

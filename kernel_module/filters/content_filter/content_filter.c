@@ -31,11 +31,11 @@ unsigned int content_filter_hook(void* priv,
         return NF_ACCEPT;  // 非TCP数据包或无负载，放行
     }
 
-    struct rule_list* while_list = get_rule_list(RULE_LIST_BLACK);
+    struct rule_list* balck_list = get_rule_list(RULE_LIST_BLACK);
     struct rule_list_node* mov;
     // 黑名单过滤
 
-    list_for_each_entry(mov, &while_list->nodes, list) {
+    list_for_each_entry(mov, &balck_list->nodes, list) {
         if (mov->rule_bitmap & RULE_CONTENT) {
             for (uint32_t i = 0; i < mov->condition_count; i++) {
                 if (mov->conditions[i].match_type == RULE_CONTENT) {

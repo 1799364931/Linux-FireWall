@@ -1,5 +1,5 @@
-#include <netlink/genl/ctrl.h>
-#include <netlink/genl/genl.h>
+#include <libnl3/netlink/genl/ctrl.h>
+#include <libnl3/netlink/genl/genl.h>
 #include <netlink/netlink.h>
 #include <cstdint>
 #include <cstring>

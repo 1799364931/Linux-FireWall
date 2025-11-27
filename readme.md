@@ -79,3 +79,56 @@ IP 端口 协议 MAC
 (用户态) 发送信息(命令/配置文件信息) => (用户态) 解析规则信息 => (内核态)netlink传输规则结构体 => (内核态)添加规则链表 
 
 过滤规则 <= hook function <= 获取规则链表 
+
+#### 2.3.1 通信数据组织
+
+内核和用户态通信有以下**局限**：
++ 内核模块和用户模块采用的头文件和语言不同，一个公共结构体需要满足两种编译方式。
++ 内核和用户无法共享内存空间，用户态所实现的数据无法通过指针直接传递给内核，需将原始数据一并传递。
++ 原始数据包含字符串等不定长的数据结构，若采用定长数据结构，则会导致结构体中大量内存被浪费。
+
+因此通信采用自定数据序列化的方式：
++ 提取一个最小的可用公共结构体，将可利用`union`存储的定长信息存储在结构体中。
++ 额外存储一个数据缓冲区，将不定长的数据存储到数据缓冲区中，并且每一个数据都存储一个元数据头，便于反序列化。
++ 采用柔性数组，以解决单个规则节点的匹配规则不定长的问题。
+
+内核与用户通信的数据缓冲区组织形式如下：
+
+```
+| rule_entry_msg | extra_data_buffer |
+
+| rule_entry_msg | 
+    |
+    └ | condition_count [4 bytes] | padding zero [4 bytes] | bitmap [8 bytes] | 
+        | conditions[0] | conditions[1] | ..... | conditions[condition_count-1] |  
+
+| extra_data_buffer|
+    |
+    └ | contents | times | interface |
+
+| contents |
+    |
+    └ | contents_count [4 bytes] | content1_length(without '\0') [4 bytes] | content1 [content1_length * 4 bytes] | .... | contentN_length(without '\0') [4 bytes] | contentN [content1_length * 4 bytes] |
+
+| times | 
+    |
+    └ | time_pair_count [4 bytes] | pair1_start_hour [4 bytes] | pair1_start_minute [4 bytes] | pair1_end_hour [4 bytes] | pair1_end_minute [4 bytes] .... | pairN_start_hour [4 bytes] | pairN_start_minute [4 bytes] | pairN_end_hour [4 bytes] | pairN_end_minute [4 bytes] |
+
+| interface |
+    |
+    └ | interface_str_length(without '\0') [4 bytes]| interface_str | 
+```
+
+其中，每个`condition_count`会存储当前匹配的具体匹配规则，如果该规则需要额外缓冲区缓存，则会将其`buffer_offset`指向结构体后的缓冲区内，其所对应的额外信息的初始偏移位，后续反序列化只需要根据内存信息重构数据结构即可。
+
+#### 2.3.2 Netlink 通信
+
+`Netlink`通信模块作为全双工通信，实现内核和用户态的通信需求：
++ 增加/删除规则，用户 -> 内核
++ 获取规则详情/日志输出打印，内核 -> 用户
+
+##### 2.3.2.1 用户态实现
+用户态利用`netlink`的封装库`libnl`实现一个`netlink_tool`工具类，其可以指定通信的目标地址，并且将缓冲区数据拷贝到数据包内进行发送。
+
+##### 2.3.2.2 内核态实现
+内核态利用`netlink`封装库`genetlink`实现对用户传输的数据包的反应，即接收一个数据包，并调用对应的回调函数对数据包进行解析。
