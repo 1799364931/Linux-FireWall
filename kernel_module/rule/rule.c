@@ -1,5 +1,9 @@
 #include "rule.h"
 
+struct rule_list *black_list_singleton = NULL;
+struct rule_list *white_list_singleton = NULL;
+
+
 uint64_t compute_bitmap(uint32_t size, struct match_condition* conditions) {
     uint64_t bitmap = 0;
     for (uint32_t i = 0; i < size; i++) {

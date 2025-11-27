@@ -51,8 +51,8 @@ struct rule_list {
     struct list_head nodes;     // 链表头
 };
 
-static struct rule_list *black_list_singleton = NULL;
-static struct rule_list *white_list_singleton = NULL;
+extern struct rule_list *black_list_singleton;
+extern struct rule_list *white_list_singleton;
 
 struct rule_list *get_rule_list(enum rule_list_type type);
 

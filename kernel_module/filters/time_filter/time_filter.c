@@ -9,7 +9,6 @@
 unsigned int time_filter_hook(void* priv,
                               struct sk_buff* skb,
                               const struct nf_hook_state* state) {
-    struct time_rule_list* rule_list;
     struct time_rule* time_rule;
 
     /* 检查SKB有效性 */

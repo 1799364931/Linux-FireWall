@@ -15,9 +15,4 @@
 unsigned int content_filter_hook(void* priv,
                                  struct sk_buff* skb,
                                  const struct nf_hook_state* state);
-static int match_content(void* payload,
-                         unsigned int payload_len,
-                         struct content_rule_list* content_list);
-
-static void* get_tcp_payload(struct sk_buff* skb, unsigned int* len);
 #endif /* _CONTENT_FILTER_H */

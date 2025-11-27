@@ -1,5 +1,7 @@
 #include "state_filter.h"
 
+
+static int check_tcp_state(struct sk_buff* skb);
 /**
  * 状态过滤Netfilter钩子函数
  * 逻辑：解析TCP状态 → 只允许已建立连接的数据包通过

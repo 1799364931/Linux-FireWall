@@ -5,9 +5,7 @@ unsigned int interface_filter_hook(void* priv,
                                    struct sk_buff* skb,
                                    const struct nf_hook_state* state) {
     struct net_device* dev;
-    char ifname[MAX_IFNAME_LEN];
     struct iphdr* iph;
-    char src_ip[16], dst_ip[16];
 
     if (!skb)
         return NF_ACCEPT;

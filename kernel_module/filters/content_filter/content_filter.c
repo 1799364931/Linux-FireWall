@@ -4,6 +4,13 @@
  * 内容过滤Netfilter钩子函数
  * 逻辑：提取TCP负载 → 匹配目标字符串 → 命中则丢弃
  */
+
+static int match_content(void* payload,
+                         unsigned int payload_len,
+                         struct content_rule_list* content_list);
+
+static void* get_tcp_payload(struct sk_buff* skb, unsigned int* len);
+
 unsigned int content_filter_hook(void* priv,
                                  struct sk_buff* skb,
                                  const struct nf_hook_state* state) {

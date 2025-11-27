@@ -20,6 +20,8 @@ MODULE_AUTHOR("Kotori");
 MODULE_DESCRIPTION("Simple Firewall Module");
 MODULE_VERSION("1.0");
 
+
+
 static struct nf_hook_ops hook_ops_array[] = {
     {
         .hook = ip_filter_hook,
