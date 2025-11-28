@@ -3,12 +3,13 @@
 #include <sstream>
 #include <string>
 #include <vector>
+#include <iostream>
 
 void cmd_parser::build_parser() {
     parser_.add<std::string>("src-ip", 0, "src ip", false);
     parser_.add<std::string>("dst-ip", 0, "dst ip", false);
     parser_.add<std::string>("src-ip-mask", 0, "src ip mask", false);
-    parser_.add<std::string>("src-ip-mask", 0, "src ip mask", false);
+    parser_.add<std::string>("dst-ip-mask", 0, "dst ip mask", false);
     parser_.add<int>("src-port", 0, "src port", false, 80,
                      cmdline::range(1, 65535));
     parser_.add<int>("dst-port", 0, "dst port", false, 80,
@@ -256,7 +257,7 @@ void cmd_parser::parse_args(uint32_t argc) {
             entry_->conditions[entry_->condition_count].src_ip = ip.value();
             entry_->conditions[entry_->condition_count].match_type =
                 RULE_SRC_IP;
-            entry_->bitmap &= RULE_SRC_IP;
+            entry_->bitmap |= RULE_SRC_IP;
             entry_->condition_count++;
         } else {
             // 失败处理
@@ -270,7 +271,7 @@ void cmd_parser::parse_args(uint32_t argc) {
             entry_->conditions[entry_->condition_count].dst_ip = ip.value();
             entry_->conditions[entry_->condition_count].match_type =
                 RULE_DST_IP;
-            entry_->bitmap &= RULE_DST_IP;
+            entry_->bitmap |= RULE_DST_IP;
             entry_->condition_count++;
         } else {
             // 失败处理
@@ -285,7 +286,7 @@ void cmd_parser::parse_args(uint32_t argc) {
                 ip.value();
             entry_->conditions[entry_->condition_count].match_type =
                 RULE_SRC_IP_MASK;
-            entry_->bitmap &= RULE_SRC_IP_MASK;
+            entry_->bitmap |= RULE_SRC_IP_MASK;
             entry_->condition_count++;
         } else {
             // 失败处理
@@ -300,7 +301,7 @@ void cmd_parser::parse_args(uint32_t argc) {
                 ip.value();
             entry_->conditions[entry_->condition_count].match_type =
                 RULE_DST_IP_MASK;
-            entry_->bitmap &= RULE_DST_IP_MASK;
+            entry_->bitmap |= RULE_DST_IP_MASK;
             entry_->condition_count++;
         } else {
             // 失败处理
@@ -315,7 +316,7 @@ void cmd_parser::parse_args(uint32_t argc) {
             entry_->conditions[entry_->condition_count].src_port = port;
             entry_->conditions[entry_->condition_count].match_type =
                 RULE_SRC_PORT;
-            entry_->bitmap &= RULE_SRC_PORT;
+            entry_->bitmap |= RULE_SRC_PORT;
             entry_->condition_count++;
         } else {
             // 失败处理
@@ -329,7 +330,7 @@ void cmd_parser::parse_args(uint32_t argc) {
             entry_->conditions[entry_->condition_count].dst_port = port;
             entry_->conditions[entry_->condition_count].match_type =
                 RULE_DST_PORT;
-            entry_->bitmap &= RULE_DST_PORT;
+            entry_->bitmap |= RULE_DST_PORT;
             entry_->condition_count++;
         } else {
             // 失败处理
@@ -346,7 +347,7 @@ void cmd_parser::parse_args(uint32_t argc) {
                    MAC_LENGTH);
             entry_->conditions[entry_->condition_count].match_type =
                 RULE_SRC_MAC;
-            entry_->bitmap &= RULE_SRC_MAC;
+            entry_->bitmap |= RULE_SRC_MAC;
             entry_->condition_count++;
         } else {
             // 失败处理
@@ -362,7 +363,7 @@ void cmd_parser::parse_args(uint32_t argc) {
                    MAC_LENGTH);
             entry_->conditions[entry_->condition_count].match_type =
                 RULE_DST_MAC;
-            entry_->bitmap &= RULE_DST_MAC;
+            entry_->bitmap |= RULE_DST_MAC;
             entry_->condition_count++;
         } else {
             // 失败处理
@@ -378,7 +379,7 @@ void cmd_parser::parse_args(uint32_t argc) {
                 proto.value();
             entry_->conditions[entry_->condition_count].match_type =
                 RULE_IPV4_PROTOCOL;
-            entry_->bitmap &= RULE_IPV4_PROTOCOL;
+            entry_->bitmap |= RULE_IPV4_PROTOCOL;
             entry_->condition_count++;
         } else {
             // 失败处理
@@ -390,7 +391,7 @@ void cmd_parser::parse_args(uint32_t argc) {
     if (parser_.exist("est")) {
         entry_->conditions[entry_->condition_count].match_type =
             RULE_STATE_POLICY_DENY_ALL_NEW;
-        entry_->bitmap &= RULE_STATE_POLICY_DENY_ALL_NEW;
+        entry_->bitmap |= RULE_STATE_POLICY_DENY_ALL_NEW;
         entry_->condition_count++;
     }
 
@@ -425,7 +426,7 @@ void cmd_parser::parse_args(uint32_t argc) {
                 buffer_offset_;
             entry_->conditions[entry_->condition_count].match_type =
                 RULE_CONTENT;
-            entry_->bitmap &= RULE_CONTENT;
+            entry_->bitmap |= RULE_CONTENT;
             entry_->condition_count++;
         } else {
             // 失败处理
@@ -462,7 +463,7 @@ void cmd_parser::parse_args(uint32_t argc) {
             buffer_offset_ = buffer_.size();
             entry_->conditions[entry_->condition_count].match_type =
                 RULE_TIME_DROP;
-            entry_->bitmap &= RULE_TIME_DROP;
+            entry_->bitmap |= RULE_TIME_DROP;
         } else {
             // 失败处理
             return;
@@ -496,7 +497,7 @@ void cmd_parser::parse_args(uint32_t argc) {
             buffer_offset_ = buffer_.size();
             entry_->conditions[entry_->condition_count].match_type =
                 RULE_TIME_ACCEPT;
-            entry_->bitmap &= RULE_TIME_ACCEPT;
+            entry_->bitmap |= RULE_TIME_ACCEPT;
             entry_->condition_count++;
         } else {
             // 失败处理
@@ -508,19 +509,20 @@ void cmd_parser::parse_args(uint32_t argc) {
     if (parser_.exist("interface")) {
         // [长度][字符串]
         auto interface = parser_.get<std::string>("interface");
-        buffer_.resize(buffer_.size() + interface.length() + 1);
+        buffer_.resize(buffer_.size() + interface.length() + sizeof(uint32_t));
         auto ptr = buffer_.data() + buffer_offset_;
         uint32_t len = interface.length();
         std::memcpy(ptr, &len, sizeof(uint32_t));
+
         ptr += sizeof(uint32_t);
         std::memcpy(ptr, interface.data(), interface.length());
         entry_->conditions[entry_->condition_count].buffer_offset =
             buffer_offset_;
         buffer_offset_ = buffer_.size();
         entry_->conditions[entry_->condition_count].buffer_len =
-            interface.length() + 1;
+            interface.length() + sizeof(uint32_t);
         entry_->conditions[entry_->condition_count].match_type = RULE_INTERFACE;
-        entry_->bitmap &= RULE_INTERFACE;
+        entry_->bitmap |= RULE_INTERFACE;
         entry_->condition_count++;
     }
 }

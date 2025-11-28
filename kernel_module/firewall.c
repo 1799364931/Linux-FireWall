@@ -21,7 +21,6 @@ MODULE_DESCRIPTION("Simple Firewall Module");
 MODULE_VERSION("1.0");
 
 
-
 static struct nf_hook_ops hook_ops_array[] = {
     {
         .hook = ip_filter_hook,
@@ -59,6 +58,7 @@ static struct nf_hook_ops hook_ops_array[] = {
         .hooknum = NF_INET_LOCAL_IN,
         .priority = NF_IP_PRI_CONNTRACK_DEFRAG,
     },
+    //todo  w
     {
         .hook = state_filter_hook,
         .pf = PF_INET,

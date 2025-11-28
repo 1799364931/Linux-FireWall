@@ -1,6 +1,8 @@
 
 #include <linux/slab.h>
 #include <linux/types.h>
+#include <linux/kernel.h>
+#include <linux/module.h>
 #include "../../public_structs/match_condition_msg.h"
 #include "../../public_structs/rule_bitmap.h"
 #include "../rule/rule.h"
@@ -80,6 +82,7 @@ void parse_buffer(char* msg_buffer_start_ptr) {
                        buffer_data_ptr + entry->conditions[i].buffer_offset + 1,
                        str_len);
                 node->conditions[i].interface[str_len] = '\0';
+                printk(KERN_INFO "interface is %s",node->conditions[i].interface[str_len]);
                 break;
             }
             case RULE_TIME_ACCEPT: {

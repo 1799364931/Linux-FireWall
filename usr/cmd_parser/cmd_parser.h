@@ -2,12 +2,13 @@
 #ifndef _CMD_PARSER_H
 #define _CMD_PARSER_H
 
-#include <vector>
 #include <netinet/in.h>
 #include <cctype>
+#include <memory>
 #include <optional>
 #include <unordered_map>
 #include <utility>
+#include <vector>
 #include "cmdline.h"
 
 class cmd_parser {
@@ -16,12 +17,19 @@ class cmd_parser {
 
     cmdline::parser& get_parser() { return this->parser_; }
 
+    void parse_args(uint32_t argc);
+
+    std::vector<char> get_msg_buffer() {
+        std::vector<char> msg_buffer(sizeof(entry_) + buffer_.size());
+        std::memcpy(msg_buffer.data(),&entry_,sizeof(entry_));
+        std::memcpy(msg_buffer.data(),buffer_.data(),buffer_.size());
+        return msg_buffer;
+    };
+
    private:
     static const std::unordered_map<std::string, uint16_t> protos_;
 
     void build_parser();
-
-    void parse_args(uint32_t argc);
 
     std::optional<uint32_t> ip_parse(std::string ip_str);
 
@@ -39,9 +47,8 @@ class cmd_parser {
 
     uint32_t buffer_offset_ = 0;
     uint32_t buffer_len_ = 0;
-    struct rule_entry_msg* entry_ = 0; 
+    struct rule_entry_msg* entry_ = 0;
     std::vector<char> buffer_;
-
 };
 
 #endif

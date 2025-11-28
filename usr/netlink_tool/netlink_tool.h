@@ -7,10 +7,9 @@
 
 class netlink_tool {
    public:
-    netlink_tool(const std::string& family_name, int cmd, int attr)
+    // 构造函数只需要 family_name
+    netlink_tool(const std::string& family_name)
         : family_name_(family_name),
-          cmd_(cmd),
-          attr_(attr),
           sock_(nullptr),
           family_id_(-1) {}
 
@@ -19,6 +18,7 @@ class netlink_tool {
             nl_socket_free(sock_);
     }
 
+    // 初始化 Netlink socket 并解析 family id
     bool init() {
         sock_ = nl_socket_alloc();
         if (!sock_) {
@@ -37,7 +37,8 @@ class netlink_tool {
         return true;
     }
 
-    bool send_buffer(const char* startpos, uint32_t bufferlen) {
+    // 发送 buffer，cmd 和 attr 作为参数传入
+    bool send_buffer(const char* startpos, uint32_t bufferlen, int cmd, int attr) {
         if (!sock_ || family_id_ < 0)
             return false;
 
@@ -47,14 +48,13 @@ class netlink_tool {
             return false;
         }
 
-        if (!genlmsg_put(msg, NL_AUTO_PORT, NL_AUTO_SEQ, family_id_, 0, 0, cmd_,
-                         1)) {
+        if (!genlmsg_put(msg, NL_AUTO_PORT, NL_AUTO_SEQ, family_id_, 0, 0, cmd, 1)) {
             std::cerr << "genlmsg_put failed\n";
             nlmsg_free(msg);
             return false;
         }
 
-        if (nla_put(msg, attr_, bufferlen, startpos) < 0) {
+        if (nla_put(msg, attr, bufferlen, startpos) < 0) {
             std::cerr << "nla_put failed\n";
             nlmsg_free(msg);
             return false;
@@ -71,9 +71,7 @@ class netlink_tool {
     }
 
    private:
-    std::string family_name_;
-    int cmd_;
-    int attr_;
-    struct nl_sock* sock_;
-    int family_id_;
+    std::string family_name_;  // Netlink family 名称
+    struct nl_sock* sock_;     // Netlink socket
+    int family_id_;            // family id（通过名字解析得到）
 };

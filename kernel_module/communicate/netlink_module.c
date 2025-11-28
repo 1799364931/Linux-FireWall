@@ -1,61 +1,52 @@
 // my_netlink_kernel.c
-#include <linux/module.h>
 #include <linux/kernel.h>
+#include <linux/module.h>
 #include <linux/netlink.h>
-#include <net/genetlink.h>
 #include <linux/slab.h>
+#include <net/genetlink.h>
+#include "buffer_parse.h"
+
+//todo 这里得写到firewall 模块里面
 
 /// ---------- 定义命令号和属性号 ----------
 enum {
-    MY_CMD_UNSPEC,
-    MY_CMD_SEND_BUF,   // 用户态要调用的命令
+    CMD_UNSPEC,
+    CMD_ADD_RULE,  // 用户态要调用的命令
 };
 
 enum {
-    MY_ATTR_UNSPEC,
-    MY_ATTR_BUF,       // 用户态传递的缓冲区
-    __MY_ATTR_MAX,
+    ATTR_UNSPEC,
+    ATTR_BUF,  // 用户态传递的缓冲区
+    __ATTR_MAX,
 };
 #define MY_ATTR_MAX (__MY_ATTR_MAX - 1)
 
 /// ---------- 属性解析策略 ----------
-static const struct nla_policy my_policy[MY_ATTR_MAX + 1] = {
-    [MY_ATTR_BUF] = { .type = NLA_BINARY }, // 定义为二进制数据
+static const struct nla_policy my_policy[__ATTR_MAX + 1] = {
+    [ATTR_BUF] = {.type = NLA_BINARY},  // 定义为二进制数据
 };
 
 /// ---------- Family 定义 ----------
 static struct genl_family my_family = {
-    .name = "my_time_family",   // 用户态要用的 family 名称
+    .name = "myfirewall",  // 用户态要用的 family 名称
     .version = 1,
-    .maxattr = MY_ATTR_MAX,
+    .maxattr = __ATTR_MAX,
     .module = THIS_MODULE,
 };
 
 /// ---------- 命令处理函数 ----------
-static int handle_send_buf(struct sk_buff *skb, struct genl_info *info)
-{
-    if (!info->attrs[MY_ATTR_BUF]) {
+static int handle_recv_add_rule_msg(struct sk_buff* skb, struct genl_info* info) {
+    if (!info->attrs[ATTR_BUF]) {
         pr_err("netlink: missing buffer attribute\n");
         return -EINVAL;
     }
 
-    const void *buf = nla_data(info->attrs[MY_ATTR_BUF]);
-    int len = nla_len(info->attrs[MY_ATTR_BUF]);
+    const void* buf = nla_data(info->attrs[ATTR_BUF]);
+    int len = nla_len(info->attrs[ATTR_BUF]);
 
     pr_info("netlink: received buffer length=%d\n", len);
 
-    // 假设缓冲区是 uint32_t 数组
-    if (len % sizeof(u32) != 0) {
-        pr_warn("netlink: buffer not aligned to u32\n");
-        return -EINVAL;
-    }
-
-    const u32 *p = buf;
-    int count = len / sizeof(u32);
-
-    for (int i = 0; i < count; i++) {
-        pr_info("netlink: buf[%d] = %u\n", i, p[i]);
-    }
+    parse_buffer(buf);
 
     return 0;
 }
@@ -63,16 +54,15 @@ static int handle_send_buf(struct sk_buff *skb, struct genl_info *info)
 /// ---------- 命令表 ----------
 static const struct genl_ops my_ops[] = {
     {
-        .cmd = MY_CMD_SEND_BUF,
+        .cmd = CMD_ADD_RULE,
         .flags = 0,
         .policy = my_policy,
-        .doit = handle_send_buf, // 收到命令时调用
+        .doit = handle_recv_add_rule_msg,  // 收到命令时调用
     },
 };
 
 /// ---------- 模块初始化和卸载 ----------
-static int __init my_init(void)
-{
+static int __init my_init(void) {
     int ret = genl_register_family(&my_family);
     if (ret) {
         pr_err("netlink: register family failed %d\n", ret);
@@ -90,8 +80,7 @@ static int __init my_init(void)
     return 0;
 }
 
-static void __exit my_exit(void)
-{
+static void __exit my_exit(void) {
     genl_unregister_family(&my_family);
     pr_info("netlink: kernel module unloaded\n");
 }

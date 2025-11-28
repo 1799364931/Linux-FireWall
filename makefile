@@ -4,7 +4,10 @@ CXXFLAGS := -Wall -O2 -std=c++17 \
     -I./usr/netlink_tool \
     -I./usr/cmd_parser \
     -I./public_structs \
-	-I /usr/include/libnl3
+    -I/usr/include/libnl3
+
+LDLIBS := -lnl-3 -lnl-genl-3
+
 # 源文件
 USR_SRCS := ./usr/firewall.cpp ./usr/cmd_parser/cmd_parser.cpp
 USR_OBJS := $(USR_SRCS:.cpp=.o)
@@ -20,7 +23,7 @@ all: usr
 usr: $(USR_TARGET)
 
 $(USR_TARGET): $(USR_OBJS)
-	$(CXX) $(CXXFLAGS) -o $@ $^
+	$(CXX) $(CXXFLAGS) -o $@ $^ $(LDLIBS)
 
 # 通用规则：把 .cpp 编译成 .o
 %.o: %.cpp

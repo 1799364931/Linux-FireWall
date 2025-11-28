@@ -34,10 +34,7 @@ unsigned int state_filter_hook(void* priv,
         }
     }
 
-    // 检查连接状态，允许则放行，否则丢弃
-
-    // 拒绝所有无效状态的数据包
-    return NF_DROP;
+    return NF_ACCEPT;
 }
 
 /**
