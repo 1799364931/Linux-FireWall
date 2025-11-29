@@ -239,22 +239,22 @@ std::optional<std::vector<std::string>> cmd_parser::content_parse(
     return result;
 }
 
-#include "../../public_structs/match_condition_msg.h"
-#include "../../public_structs/rule_bitmap.h"
+
 void cmd_parser::parse_args(uint32_t argc) {
     // 构造结构体
 
-    uint32_t total_rule_entry_msg_size =
-        sizeof(struct match_condition_msg) * argc +
+    rule_entry_msg_size_ =
+        sizeof(struct match_condition_msg) * argc+
         sizeof(struct rule_entry_msg);
 
-    entry_ = (struct rule_entry_msg*)malloc(total_rule_entry_msg_size);
+    entry_ = (struct rule_entry_msg*)malloc(rule_entry_msg_size_);
 
     // ip 处理
     if (parser_.exist("src-ip")) {
         auto ip = ip_parse(parser_.get<std::string>("src-ip"));
         if (ip.has_value()) {
             entry_->conditions[entry_->condition_count].src_ip = ip.value();
+            
             entry_->conditions[entry_->condition_count].match_type =
                 RULE_SRC_IP;
             entry_->bitmap |= RULE_SRC_IP;

@@ -10,7 +10,8 @@
 #include <utility>
 #include <vector>
 #include "cmdline.h"
-
+#include "../../public_structs/match_condition_msg.h"
+#include "../../public_structs/rule_bitmap.h"
 class cmd_parser {
    public:
     cmd_parser() { this->build_parser(); }
@@ -20,9 +21,10 @@ class cmd_parser {
     void parse_args(uint32_t argc);
 
     std::vector<char> get_msg_buffer() {
-        std::vector<char> msg_buffer(sizeof(entry_) + buffer_.size());
-        std::memcpy(msg_buffer.data(),&entry_,sizeof(entry_));
-        std::memcpy(msg_buffer.data(),buffer_.data(),buffer_.size());
+        std::vector<char> msg_buffer(rule_entry_msg_size_ + buffer_.size());
+        std::cout<<"buffer size:" <<buffer_.size()<<std::endl;
+        std::memcpy(msg_buffer.data(),entry_,rule_entry_msg_size_);
+        std::memcpy(msg_buffer.data()+rule_entry_msg_size_,buffer_.data(),buffer_.size());
         return msg_buffer;
     };
 
@@ -49,6 +51,7 @@ class cmd_parser {
     uint32_t buffer_len_ = 0;
     struct rule_entry_msg* entry_ = 0;
     std::vector<char> buffer_;
+    uint32_t rule_entry_msg_size_ = 0;
 };
 
 #endif
