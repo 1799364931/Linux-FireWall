@@ -1,0 +1,15 @@
+
+#ifndef _BUFFER_PARSER_H
+#define _BUFFER_PARSER_H
+#include <linux/kernel.h>
+#include <linux/module.h>
+#include <linux/slab.h>
+#include <linux/types.h>
+#include "../../../public_structs/match_condition_msg.h"
+#include "../../../public_structs/rule_bitmap.h"
+#include "../../rule/rule.h"
+// 构造一个rule_list_node的数据结构
+
+void parse_buffer(const char* msg_buffer_start_ptr);
+
+#endif

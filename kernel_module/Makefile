@@ -20,7 +20,9 @@ myfirewall-objs := firewall.o \
                  filters/protocol_filter/ipv4_protocol.o \
                  filters/state_filter/state_filter.o \
                  filters/port_filter/port_filter.o \
-                 filters/ip_filter/ip_filter.o
+                 filters/ip_filter/ip_filter.o  \
+                 communicate/netlink_module/netlink_module.o \
+                 communicate/buffer_parse/buffer_parse.o
 all:
 	$(MAKE) -C $(KDIR) M=$(PWD) modules
 

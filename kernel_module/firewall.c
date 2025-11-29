@@ -6,6 +6,7 @@
 #include <linux/module.h>
 #include <linux/string.h>
 
+#include "communicate/netlink_module/netlink_module.h"
 #include "filters/content_filter/content_filter.h"
 #include "filters/interface_filter/interface_filter.h"
 #include "filters/ip_filter/ip_filter.h"
@@ -19,7 +20,6 @@ MODULE_LICENSE("GPL");
 MODULE_AUTHOR("Kotori");
 MODULE_DESCRIPTION("Simple Firewall Module");
 MODULE_VERSION("1.0");
-
 
 static struct nf_hook_ops hook_ops_array[] = {
     {
@@ -58,7 +58,6 @@ static struct nf_hook_ops hook_ops_array[] = {
         .hooknum = NF_INET_LOCAL_IN,
         .priority = NF_IP_PRI_CONNTRACK_DEFRAG,
     },
-    //todo  w
     {
         .hook = state_filter_hook,
         .pf = PF_INET,
@@ -88,7 +87,8 @@ static int __init firewall_init(void) {
     // match_conditions[2].ipv4_protocol = IPPROTO_TCP;
     // match_conditions[2].match_type = RULE_IPV4_PROTOCOL;
 
-    // struct rule_list_node* new_rule_list_node = (struct rule_list_node*)kmalloc(
+    // struct rule_list_node* new_rule_list_node = (struct
+    // rule_list_node*)kmalloc(
     //     sizeof(struct rule_list_node), GFP_KERNEL);
     // new_rule_list_node->conditions = match_conditions;
     // new_rule_list_node->condition_count = 3;
@@ -109,6 +109,9 @@ static int __init firewall_init(void) {
             return ret;
         }
     }
+    ret = genl_register_family(&my_family);
+    if (ret)
+        pr_err("failed to register genl family: %d\n", ret);
 
     printk(KERN_INFO "Firewall module: Successfully loaded\n");
     return 0;
@@ -121,6 +124,7 @@ static void __exit firewall_exit(void) {
          i < (sizeof(hook_ops_array) / sizeof(struct nf_hook_ops)); i++) {
         nf_unregister_net_hook(&init_net, &hook_ops_array[i]);
     }
+    genl_unregister_family(&my_family);
     printk(KERN_INFO "Firewall module: Unloaded\n");
 }
 

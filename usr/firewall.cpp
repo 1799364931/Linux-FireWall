@@ -4,7 +4,6 @@
 #include <iostream>
 
 
-
 int main(int argc, char* argv[]) {
     cmd_parser parser;
     netlink_tool netlink_tool("myfirewall");
@@ -12,8 +11,15 @@ int main(int argc, char* argv[]) {
     parser.parse_args(argc);
     auto buffer_msg =  parser.get_msg_buffer();
     std::cout<<buffer_msg.size();
-    netlink_tool.send_buffer(buffer_msg.data(),buffer_msg.size(),1,1);
-    
+    bool ret = netlink_tool.init();
+    if(!ret){
+        std::cout<<"netlink_tool init fail'\n'";
+    }
+    ret = netlink_tool.send_buffer(buffer_msg.data(),buffer_msg.size(),1,1);
+
+    if(!ret){
+        std::cout<<"netlink_tool send fail'\n'";
+    }
     //todo 做一下日志打点测试
     
 }

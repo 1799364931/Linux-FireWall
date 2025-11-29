@@ -5,6 +5,8 @@
 #include <stdint.h>
 #endif
 
+#ifndef _MATCH_CONDITION_MSG_H
+#define _MATCH_CONDITION_MSG_H
 #define MAC_LENGTH 6
 
 /**
@@ -40,3 +42,5 @@ struct rule_entry_msg {
     struct match_condition_msg conditions[];
 };
 // 后面跟附加 buffer
+
+#endif

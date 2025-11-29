@@ -1,23 +1,16 @@
 
-#include <linux/slab.h>
-#include <linux/types.h>
-#include <linux/kernel.h>
-#include <linux/module.h>
-#include "../../public_structs/match_condition_msg.h"
-#include "../../public_structs/rule_bitmap.h"
-#include "../rule/rule.h"
-// 构造一个rule_list_node的数据结构
+#include "buffer_parse.h"
 
 static inline uint32_t read_u32(char* base, uint32_t offset) {
     return *(uint32_t*)(base + offset);
 }
 
-void parse_buffer(char* msg_buffer_start_ptr) {
+void parse_buffer(const char* msg_buffer_start_ptr) {
     struct rule_list_node* node =
         kmalloc(sizeof(struct rule_list_node), GFP_KERNEL);
     INIT_LIST_HEAD(&node->list);
     // 重构buffer
-    struct rule_entry_msg* entry = msg_buffer_start_ptr;
+    struct rule_entry_msg* entry = (struct rule_entry_msg*)msg_buffer_start_ptr;
     uint32_t rule_entry_msg_size =
         sizeof(struct rule_entry_msg) +
         entry->condition_count * sizeof(struct match_condition_msg);
@@ -77,12 +70,14 @@ void parse_buffer(char* msg_buffer_start_ptr) {
                 uint32_t str_len = read_u32(buffer_data_ptr,
                                             entry->conditions[i].buffer_offset);
                 node->conditions[i].interface =
-                    kmalloc(str_len + 1, GFP_KERNEL);
+                    kmalloc(str_len + sizeof(char), GFP_KERNEL);
                 memcpy(node->conditions[i].interface,
-                       buffer_data_ptr + entry->conditions[i].buffer_offset + 1,
+                       buffer_data_ptr + entry->conditions[i].buffer_offset +
+                           sizeof(uint32_t),
                        str_len);
                 node->conditions[i].interface[str_len] = '\0';
-                printk(KERN_INFO "interface is %s",node->conditions[i].interface[str_len]);
+                printk(KERN_INFO "interface is %s",
+                       node->conditions[i].interface);
                 break;
             }
             case RULE_TIME_ACCEPT: {
@@ -95,7 +90,9 @@ void parse_buffer(char* msg_buffer_start_ptr) {
                 node->conditions[i].time_list = time_list;
 
                 int* buffer_data_mov_ptr =
-                    buffer_data_ptr + entry->conditions[i].buffer_offset + 1;
+                    (int*)(buffer_data_ptr +
+                           entry->conditions[i].buffer_offset +
+                           sizeof(uint32_t));
 
                 for (uint32_t j = 0; j < time_pair_cnt; j++) {
                     int* time_pair_pos_start =
@@ -112,12 +109,13 @@ void parse_buffer(char* msg_buffer_start_ptr) {
                 break;
             }
             default: {
+                //*这里报错是没问题的，src_ip确实比union_size更小
                 memcpy(&node->conditions[i].src_ip, &node->conditions[i].src_ip,
                        union_size);
             }
         }
     }
 
-    //黑名单
-    add_list(node,&get_rule_list(RULE_LIST_BLACK)->nodes);
+    // 黑名单
+    list_add(&node->list, &get_rule_list(RULE_LIST_BLACK)->nodes);
 };

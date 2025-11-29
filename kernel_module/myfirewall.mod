@@ -10,3 +10,5 @@
 ./filters/state_filter/state_filter.o
 ./filters/port_filter/port_filter.o
 ./filters/ip_filter/ip_filter.o
+./communicate/netlink_module/netlink_module.o
+./communicate/buffer_parse/buffer_parse.o
