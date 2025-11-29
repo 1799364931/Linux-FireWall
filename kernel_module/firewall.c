@@ -108,7 +108,7 @@ static int __init firewall_init(void) {
                    "Firewall module: Failed to register netfilter hook\n");
             return ret;
         }
-    }
+    } 
     ret = genl_register_family(&my_family);
     if (ret)
         pr_err("failed to register genl family: %d\n", ret);

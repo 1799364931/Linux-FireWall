@@ -11,7 +11,7 @@
 #include <linux/udp.h>
 #include <linux/byteorder/generic.h>
 #include <linux/ip.h>
-
+#include <linux/inet.h>
 extern struct nf_hook_ops port_filter_nfho;
 
 unsigned int port_filter_hook(void* priv,

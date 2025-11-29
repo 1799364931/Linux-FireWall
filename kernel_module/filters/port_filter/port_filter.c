@@ -48,8 +48,11 @@ unsigned int port_filter_hook(void* priv,
                         break;
                     }
                     case RULE_DST_PORT: {
+                        
+                        
                         if (dst_port == mov->conditions[i].dst_port) {
                             SKB_RULE_BITMAP(skb) |= RULE_DST_PORT;
+                            printk(KERN_INFO "%lld %lld",mov->rule_bitmap,SKB_RULE_BITMAP(skb));
                         }
                         break;
                     }

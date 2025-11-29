@@ -4,6 +4,7 @@
 #include <string>
 #include <vector>
 #include <iostream>
+#include <arpa/inet.h>
 
 void cmd_parser::build_parser() {
     parser_.add<std::string>("src-ip", 0, "src ip", false);
@@ -313,7 +314,7 @@ void cmd_parser::parse_args(uint32_t argc) {
     if (parser_.exist("src-port")) {
         auto port = parser_.get<int>("src-port");
         if (0 <= port && port <= 65535) {
-            entry_->conditions[entry_->condition_count].src_port = port;
+            entry_->conditions[entry_->condition_count].src_port = htons(port);
             entry_->conditions[entry_->condition_count].match_type =
                 RULE_SRC_PORT;
             entry_->bitmap |= RULE_SRC_PORT;
@@ -327,7 +328,7 @@ void cmd_parser::parse_args(uint32_t argc) {
     if (parser_.exist("dst-port")) {
         auto port = parser_.get<int>("dst-port");
         if (0 <= port && port <= 65535) {
-            entry_->conditions[entry_->condition_count].dst_port = port;
+            entry_->conditions[entry_->condition_count].dst_port = htons(port);
             entry_->conditions[entry_->condition_count].match_type =
                 RULE_DST_PORT;
             entry_->bitmap |= RULE_DST_PORT;

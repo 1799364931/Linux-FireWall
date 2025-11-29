@@ -1,4 +1,5 @@
 #include "ip_filter.h"
+#include <linux/inet.h>
 
 #define RULE_IP_FILTER \
     RULE_SRC_IP | RULE_SRC_IP_MASK | RULE_DST_IP | RULE_DST_IP_MASK
@@ -6,6 +7,10 @@
 unsigned int ip_filter_hook(void* priv,
                             struct sk_buff* skb,
                             const struct nf_hook_state* state) {
+
+
+    //this is the first hook?
+    memset(skb->cb,0,sizeof(skb->cb));
     struct iphdr* iph;
 
     if (!skb)

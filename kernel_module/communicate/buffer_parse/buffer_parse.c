@@ -15,14 +15,13 @@ void parse_buffer(const char* msg_buffer_start_ptr) {
         sizeof(struct rule_entry_msg) +
         entry->condition_count * sizeof(struct match_condition_msg);
     char* buffer_data_ptr = (char*)entry + rule_entry_msg_size;
-
+    printk(KERN_INFO "rule_entry_msg size:%d\n",rule_entry_msg_size);
     // 内核规则链表节点开辟空间
     node->conditions = kmalloc(
         entry->condition_count * sizeof(struct match_condition), GFP_KERNEL);
 
     node->condition_count = entry->condition_count;
     node->rule_bitmap = entry->bitmap;
-
     size_t union_size = sizeof(struct match_condition) -
                         offsetof(struct match_condition, src_ip);
 
@@ -110,7 +109,7 @@ void parse_buffer(const char* msg_buffer_start_ptr) {
             }
             default: {
                 //*这里报错是没问题的，src_ip确实比union_size更小
-                memcpy(&node->conditions[i].src_ip, &node->conditions[i].src_ip,
+                memcpy(&node->conditions[i].src_ip, &entry->conditions[i].src_ip,
                        union_size);
             }
         }
