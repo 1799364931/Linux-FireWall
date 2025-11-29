@@ -41,7 +41,7 @@ void release_rule_list(struct rule_list* list) {
         for (uint32_t i = 0; i < pos->condition_count; i++) {
             switch (pos->conditions[i].match_type) {
                 case RULE_INTERFACE: {
-                    free(pos->conditions[i].interface);
+                    kfree(pos->conditions[i].interface);
                     pos->conditions[i].interface = NULL;
                     break;
                 }

@@ -14,8 +14,8 @@ void parse_buffer(const char* msg_buffer_start_ptr) {
     uint32_t rule_entry_msg_size =
         sizeof(struct rule_entry_msg) +
         entry->condition_count * sizeof(struct match_condition_msg);
-    char* buffer_data_ptr = (char*)entry + rule_entry_msg_size;
-    printk(KERN_INFO "rule_entry_msg size:%d\n",rule_entry_msg_size);
+    char* buffer_data_ptr = (char*)msg_buffer_start_ptr + rule_entry_msg_size;
+    printk(KERN_INFO "rule_entry_msg size:%d\n", rule_entry_msg_size);
     // 内核规则链表节点开辟空间
     node->conditions = kmalloc(
         entry->condition_count * sizeof(struct match_condition), GFP_KERNEL);
@@ -66,6 +66,7 @@ void parse_buffer(const char* msg_buffer_start_ptr) {
                 break;
             }
             case RULE_INTERFACE: {
+                
                 uint32_t str_len = read_u32(buffer_data_ptr,
                                             entry->conditions[i].buffer_offset);
                 node->conditions[i].interface =
@@ -75,8 +76,7 @@ void parse_buffer(const char* msg_buffer_start_ptr) {
                            sizeof(uint32_t),
                        str_len);
                 node->conditions[i].interface[str_len] = '\0';
-                printk(KERN_INFO "interface is %s",
-                       node->conditions[i].interface);
+
                 break;
             }
             case RULE_TIME_ACCEPT: {
@@ -105,12 +105,33 @@ void parse_buffer(const char* msg_buffer_start_ptr) {
                 break;
             }
             case RULE_TIME_DROP: {
+                // [时间对个数] [HH:MM][HH:MM] 一个时间2*4 = 8字节
+                struct time_rule_list* time_list =
+                    kmalloc(sizeof(struct time_rule_list), GFP_KERNEL);
+                uint32_t time_pair_cnt = read_u32(
+                    buffer_data_ptr, entry->conditions[i].buffer_offset);
+                time_list->count = time_pair_cnt;
+                node->conditions[i].time_list = time_list;
+
+                int* buffer_data_mov_ptr =
+                    (int*)(buffer_data_ptr +
+                           entry->conditions[i].buffer_offset +
+                           sizeof(uint32_t));
+
+                for (uint32_t j = 0; j < time_pair_cnt; j++) {
+                    int* time_pair_pos_start =
+                        buffer_data_mov_ptr + j * 4 * sizeof(int);
+                    add_time_rule(*time_pair_pos_start,
+                                  *(time_pair_pos_start + 1),
+                                  *(time_pair_pos_start + 2),
+                                  *(time_pair_pos_start + 3), time_list);
+                }
                 break;
             }
             default: {
                 //*这里报错是没问题的，src_ip确实比union_size更小
-                memcpy(&node->conditions[i].src_ip, &entry->conditions[i].src_ip,
-                       union_size);
+                memcpy(&node->conditions[i].src_ip,
+                       &entry->conditions[i].src_ip, union_size);
             }
         }
     }

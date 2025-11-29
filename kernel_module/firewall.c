@@ -87,7 +87,7 @@ static int __init firewall_init(void) {
                    "Firewall module: Failed to register netfilter hook\n");
             return ret;
         }
-    } 
+    }
     ret = genl_register_family(&my_family);
     if (ret)
         pr_err("failed to register genl family: %d\n", ret);
@@ -104,7 +104,9 @@ static void __exit firewall_exit(void) {
         nf_unregister_net_hook(&init_net, &hook_ops_array[i]);
     }
     genl_unregister_family(&my_family);
-    
+    release_rule_list(get_rule_list(RULE_LIST_WHITE));
+    release_rule_list(get_rule_list(RULE_LIST_BLACK));
+
     printk(KERN_INFO "Firewall module: Unloaded\n");
 }
 

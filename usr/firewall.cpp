@@ -4,6 +4,8 @@
 #include <iostream>
 
 
+//todo 还有时间和内容负载没有测试
+
 int main(int argc, char* argv[]) {
     cmd_parser parser;
     netlink_tool netlink_tool("myfirewall");
