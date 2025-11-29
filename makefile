@@ -4,7 +4,8 @@ CXXFLAGS := -Wall -O2 -std=c++17 \
     -I./usr/netlink_tool \
     -I./usr/cmd_parser \
     -I./public_structs \
-    -I/usr/include/libnl3
+    -I/usr/include/libnl3 \
+    -fsanitize=address -g
 
 LDLIBS := -lnl-3 -lnl-genl-3
 

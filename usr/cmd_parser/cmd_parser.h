@@ -9,12 +9,14 @@
 #include <unordered_map>
 #include <utility>
 #include <vector>
-#include "cmdline.h"
 #include "../../public_structs/match_condition_msg.h"
 #include "../../public_structs/rule_bitmap.h"
+#include "cmdline.h"
 class cmd_parser {
    public:
     cmd_parser() { this->build_parser(); }
+
+    ~cmd_parser() { free(entry_); }
 
     cmdline::parser& get_parser() { return this->parser_; }
 
@@ -22,9 +24,10 @@ class cmd_parser {
 
     std::vector<char> get_msg_buffer() {
         std::vector<char> msg_buffer(rule_entry_msg_size_ + buffer_.size());
-        std::cout<<"buffer size:" <<buffer_.size()<<std::endl;
-        std::memcpy(msg_buffer.data(),entry_,rule_entry_msg_size_);
-        std::memcpy(msg_buffer.data()+rule_entry_msg_size_,buffer_.data(),buffer_.size());
+        std::cout << "buffer size:" << buffer_.size() << std::endl;
+        std::memcpy(msg_buffer.data(), entry_, rule_entry_msg_size_);
+        std::memcpy(msg_buffer.data() + rule_entry_msg_size_, buffer_.data(),
+                    buffer_.size());
         return msg_buffer;
     };
 

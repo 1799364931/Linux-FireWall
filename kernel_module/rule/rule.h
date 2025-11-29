@@ -10,7 +10,8 @@
 #include "../../public_structs/rule_bitmap.h"
 #include "../filters/content_filter/content_filter_list/content_filter_list.h"
 #include "../filters/time_filter/time_filter_list/time_filter_list.h"
-
+#include "../filters/content_filter/content_filter_list/content_filter_list.h"
+#include "../filters/time_filter/time_filter_list/time_filter_list.h"
 
 // 不要复用
 

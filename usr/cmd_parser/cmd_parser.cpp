@@ -1,10 +1,10 @@
 #include "cmd_parser.h"
+#include <arpa/inet.h>
 #include <cctype>
+#include <iostream>
 #include <sstream>
 #include <string>
 #include <vector>
-#include <iostream>
-#include <arpa/inet.h>
 
 void cmd_parser::build_parser() {
     parser_.add<std::string>("src-ip", 0, "src ip", false);
@@ -23,7 +23,7 @@ void cmd_parser::build_parser() {
                              false);
     parser_.add<std::string>("time-accept", 0,
                              "accept the data package at time", false);
-    parser_.add("est", 0, "only the est state data package accept");
+    parser_.add<int>("est", 0, "only the est state data package accept",false,0);
     parser_.add<std::string>(
         "content", 0, "filter the package whose payload contains content",
         false);
@@ -240,28 +240,32 @@ std::optional<std::vector<std::string>> cmd_parser::content_parse(
     return result;
 }
 
-
 void cmd_parser::parse_args(uint32_t argc) {
     // 构造结构体
-
-    rule_entry_msg_size_ =
-        sizeof(struct match_condition_msg) * argc+
-        sizeof(struct rule_entry_msg);
-
+    
+    rule_entry_msg_size_ = sizeof(struct match_condition_msg) * argc +
+                           sizeof(struct rule_entry_msg);
+    
     entry_ = (struct rule_entry_msg*)malloc(rule_entry_msg_size_);
-
+    if(entry_ == NULL){
+        std::cout<<"memory limit! malloc fail"<<std::endl;
+        return;
+    }
+    
+    memset(entry_,0,rule_entry_msg_size_);
     // ip 处理
     if (parser_.exist("src-ip")) {
         auto ip = ip_parse(parser_.get<std::string>("src-ip"));
         if (ip.has_value()) {
             entry_->conditions[entry_->condition_count].src_ip = ip.value();
-            
+
             entry_->conditions[entry_->condition_count].match_type =
                 RULE_SRC_IP;
             entry_->bitmap |= RULE_SRC_IP;
             entry_->condition_count++;
         } else {
             // 失败处理
+            std::cout << "arg src-ip parse fail" << std::endl;
             return;
         }
     }
@@ -276,6 +280,7 @@ void cmd_parser::parse_args(uint32_t argc) {
             entry_->condition_count++;
         } else {
             // 失败处理
+            std::cout << "arg dst-ip parse fail" << std::endl;
             return;
         }
     }
@@ -291,6 +296,7 @@ void cmd_parser::parse_args(uint32_t argc) {
             entry_->condition_count++;
         } else {
             // 失败处理
+            std::cout << "arg src-ip-mask parse fail" << std::endl;
             return;
         }
     }
@@ -306,6 +312,8 @@ void cmd_parser::parse_args(uint32_t argc) {
             entry_->condition_count++;
         } else {
             // 失败处理
+            std::cout << "arg dst-ip-mask parse fail" << std::endl;
+
             return;
         }
     }
@@ -321,6 +329,8 @@ void cmd_parser::parse_args(uint32_t argc) {
             entry_->condition_count++;
         } else {
             // 失败处理
+            std::cout << "arg src-port parse fail" << std::endl;
+
             return;
         }
     }
@@ -335,6 +345,8 @@ void cmd_parser::parse_args(uint32_t argc) {
             entry_->condition_count++;
         } else {
             // 失败处理
+            std::cout << "arg dst-port parse fail" << std::endl;
+
             return;
         }
     }
@@ -343,8 +355,8 @@ void cmd_parser::parse_args(uint32_t argc) {
     if (parser_.exist("src-mac")) {
         auto mac = mac_parse(parser_.get<std::string>("src-mac"));
         if (mac.has_value()) {
-            memcpy(mac.value().data(),
-                   entry_->conditions[entry_->condition_count].src_mac,
+            memcpy(entry_->conditions[entry_->condition_count].src_mac,
+                   mac.value().data(),
                    MAC_LENGTH);
             entry_->conditions[entry_->condition_count].match_type =
                 RULE_SRC_MAC;
@@ -352,6 +364,8 @@ void cmd_parser::parse_args(uint32_t argc) {
             entry_->condition_count++;
         } else {
             // 失败处理
+            std::cout << "arg src-mac parse fail" << std::endl;
+
             return;
         }
     }
@@ -359,8 +373,8 @@ void cmd_parser::parse_args(uint32_t argc) {
     if (parser_.exist("dst-mac")) {
         auto mac = mac_parse(parser_.get<std::string>("dst-mac"));
         if (mac.has_value()) {
-            memcpy(mac.value().data(),
-                   entry_->conditions[entry_->condition_count].dst_mac,
+            memcpy(entry_->conditions[entry_->condition_count].dst_mac,
+                   mac.value().data(),
                    MAC_LENGTH);
             entry_->conditions[entry_->condition_count].match_type =
                 RULE_DST_MAC;
@@ -368,6 +382,7 @@ void cmd_parser::parse_args(uint32_t argc) {
             entry_->condition_count++;
         } else {
             // 失败处理
+            std::cout << "arg dst-mac parse fail" << std::endl;
             return;
         }
     }
@@ -384,6 +399,7 @@ void cmd_parser::parse_args(uint32_t argc) {
             entry_->condition_count++;
         } else {
             // 失败处理
+            std::cout << "arg proto parse fail" << std::endl;
             return;
         }
     }
@@ -394,6 +410,7 @@ void cmd_parser::parse_args(uint32_t argc) {
             RULE_STATE_POLICY_DENY_ALL_NEW;
         entry_->bitmap |= RULE_STATE_POLICY_DENY_ALL_NEW;
         entry_->condition_count++;
+        
     }
 
     // 处理content
@@ -430,6 +447,8 @@ void cmd_parser::parse_args(uint32_t argc) {
             entry_->bitmap |= RULE_CONTENT;
             entry_->condition_count++;
         } else {
+            std::cout << "arg content parse fail" << std::endl;
+
             // 失败处理
             return;
         }
@@ -458,7 +477,7 @@ void cmd_parser::parse_args(uint32_t argc) {
             }
             //
             entry_->conditions[entry_->condition_count].buffer_len =
-                1 + sizeof(uint32_t) * 2 * times.value().size();
+                sizeof(uint32_t) + sizeof(uint32_t) * 2 * times.value().size();
             entry_->conditions[entry_->condition_count].buffer_offset =
                 buffer_offset_;
             buffer_offset_ = buffer_.size();
@@ -467,6 +486,8 @@ void cmd_parser::parse_args(uint32_t argc) {
             entry_->bitmap |= RULE_TIME_DROP;
         } else {
             // 失败处理
+            std::cout << "arg time-drop parse fail" << std::endl;
+
             return;
         }
     }
@@ -492,7 +513,7 @@ void cmd_parser::parse_args(uint32_t argc) {
             }
             //
             entry_->conditions[entry_->condition_count].buffer_len =
-                1 + sizeof(uint32_t) * 2 * times.value().size();
+                sizeof(uint32_t) + sizeof(uint32_t) * 2 * times.value().size();
             entry_->conditions[entry_->condition_count].buffer_offset =
                 buffer_offset_;
             buffer_offset_ = buffer_.size();
@@ -502,6 +523,7 @@ void cmd_parser::parse_args(uint32_t argc) {
             entry_->condition_count++;
         } else {
             // 失败处理
+            std::cout << "arg time-accept parse fail" << std::endl;
             return;
         }
     }

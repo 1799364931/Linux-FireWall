@@ -14,9 +14,8 @@ int main(int argc, char* argv[]) {
     bool ret = netlink_tool.init();
     if(!ret){
         std::cout<<"netlink_tool init fail'\n'";
-    }//192.168.119.134
+    }
     ret = netlink_tool.send_buffer(buffer_msg.data(),buffer_msg.size(),1,1);
-
     if(!ret){
         std::cout<<"netlink_tool send fail'\n'";
     }
