@@ -26,7 +26,7 @@ int main(int argc, char* argv[]) {
 
         auto buffer_msg = parser.get_msg_buffer();
         std::cout << "size of buffer msg:" << buffer_msg.size() << std::endl;
-
+        
         ret = netlink_tool.send_buffer(buffer_msg.data(), buffer_msg.size(), 1,
                                        1);
         if (!ret) {

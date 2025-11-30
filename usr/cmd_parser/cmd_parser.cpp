@@ -221,6 +221,7 @@ bool cmd_parser::parse_args(uint32_t argc) {
     if (parser_.exist("src-ip")) {
         auto ip = ip_parse(parser_.get<std::string>("src-ip"));
         if (ip.has_value()) {
+
             entry_->conditions[entry_->condition_count].src_ip = ip.value();
 
             entry_->conditions[entry_->condition_count].match_type =

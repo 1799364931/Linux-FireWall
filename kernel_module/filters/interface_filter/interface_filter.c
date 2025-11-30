@@ -41,7 +41,9 @@ unsigned int interface_filter_hook(void* priv,
         // SKB_RULE_BITMAP(skb) 白名单/黑名单
         // mov->rule_bitmap 标记了黑名单
         if (!ENABLE_BLACK_LIST(skb) && mov->rule_bitmap == SKB_RULE_BITMAP(skb)) {
+            printk(KERN_INFO "accept!!!");
             return NF_ACCEPT;
+            
         }
     }
 

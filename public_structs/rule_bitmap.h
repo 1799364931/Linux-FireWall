@@ -20,6 +20,6 @@
 
 #define SKB_RULE_BITMAP(skb) (*(uint64_t*)(skb->cb))
 
-#define ENABLE_BLACK_LIST(skb) SKB_RULE_BITMAP(skb) & RULE_BLACK
+#define ENABLE_BLACK_LIST(skb) (SKB_RULE_BITMAP(skb) & RULE_BLACK)
 
 #endif
