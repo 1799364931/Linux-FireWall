@@ -1,14 +1,12 @@
-# include "content_filter_list.h"
+#include "content_filter_list.h"
 
 /**
  * 初始化内容规则链表
  */
 
-
 // static struct content_rule_list global_content_list;
 
-int init_content_rules(struct content_rule_list* content_list)
-{
+int init_content_rules(struct content_rule_list* content_list) {
     INIT_LIST_HEAD(&content_list->head);
     content_list->count = 0;
     printk(KERN_INFO "ContentWall: Content rules initialized\n");
@@ -18,14 +16,13 @@ int init_content_rules(struct content_rule_list* content_list)
 /**
  * 清理内容规则（释放内存）
  */
-void cleanup_content_rules(struct content_rule_list* content_list)
-{
+void cleanup_content_rules(struct content_rule_list* content_list) {
     struct content_rule *rule, *tmp;
 
     list_for_each_entry_safe(rule, tmp, &content_list->head, list) {
         list_del(&rule->list);
-        kfree(rule->target_str);  // 释放字符串内存
-        kfree(rule);              // 释放规则结构体
+        kfree(rule->target_str);
+        kfree(rule)
     }
 
     content_list->count = 0;
@@ -35,9 +32,9 @@ void cleanup_content_rules(struct content_rule_list* content_list)
 /**
  * 添加内容匹配规则（目标字符串）
  */
-int add_content_rule(const char *target_str,struct content_rule_list* content_list)
-{
-    struct content_rule *new_rule;
+int add_content_rule(const char* target_str,
+                     struct content_rule_list* content_list) {
+    struct content_rule* new_rule;
     unsigned int str_len;
 
     // 参数验证
@@ -54,7 +51,8 @@ int add_content_rule(const char *target_str,struct content_rule_list* content_li
     }
 
     // 分配字符串内存（内核中不能直接用用户态字符串指针，需拷贝）
-    new_rule->target_str = kmalloc(str_len + 1, GFP_KERNEL);  // +1 存字符串结束符'\0'
+    new_rule->target_str =
+        kmalloc(str_len + 1, GFP_KERNEL);  // +1 存字符串结束符'\0'
     if (!new_rule->target_str) {
         printk(KERN_ERR "ContentWall: Failed to allocate string memory\n");
         kfree(new_rule);
@@ -70,6 +68,7 @@ int add_content_rule(const char *target_str,struct content_rule_list* content_li
     list_add_tail(&new_rule->list, &content_list->head);
     content_list->count++;
 
-    printk(KERN_INFO "ContentWall: Added content rule - target: %s\n", target_str);
+    printk(KERN_INFO "ContentWall: Added content rule - target: %s\n",
+           target_str);
     return 0;
 }

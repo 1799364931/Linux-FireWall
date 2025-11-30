@@ -23,7 +23,8 @@ void cmd_parser::build_parser() {
                              false);
     parser_.add<std::string>("time-accept", 0,
                              "accept the data package at time", false);
-    parser_.add<int>("est", 0, "only the est state data package accept",false,0);
+    parser_.add<int>("est", 0, "only the est state data package accept", false,
+                     0);
     parser_.add<std::string>(
         "content", 0, "filter the package whose payload contains content",
         false);
@@ -189,70 +190,34 @@ cmd_parser::time_parse(std::string time_str) {
 
 std::optional<std::vector<std::string>> cmd_parser::content_parse(
     std::string contents) {
-    size_t i = 0;
     std::vector<std::string> result;
 
-    // 去掉首尾引号（整体必须包裹）
-    if (contents.size() >= 2 && contents.front() == '"' &&
-        contents.back() == '"') {
-        contents = contents.substr(1, contents.size() - 2);
-    } else {
-        return std::nullopt;  // 必须有双引号
-    }
-
-    while (i < contents.size()) {
-        // 跳过前导空格
-        while (i < contents.size() &&
-               isspace(static_cast<unsigned char>(contents[i]))) {
-            i++;
-        }
-
-        // 必须以双引号开头
-        if (i >= contents.size() || contents[i] != '"') {
-            return std::nullopt;
-        }
-        i++;
-
-        // 找到下一个双引号
-        size_t end = contents.find('"', i);
-        if (end == std::string::npos) {
-            return std::nullopt;
-        }
-
-        // 提取内容（可以为空字符串）
-        std::string token = contents.substr(i, end - i);
+    // 使用 stringstream 按空格分割
+    std::istringstream iss(contents);
+    std::string token;
+    while (iss >> token) {
         result.push_back(token);
-
-        // 移动到结束引号之后
-        i = end + 1;
-
-        // 跳过结尾空格，继续下一个
-        while (i < contents.size() &&
-               isspace(static_cast<unsigned char>(contents[i]))) {
-            i++;
-        }
     }
 
-    // 至少要有一个合法的 "xxx"
     if (result.empty())
         return std::nullopt;
 
-    return result;
+    return std::make_optional(result);
 }
 
-void cmd_parser::parse_args(uint32_t argc) {
+bool cmd_parser::parse_args(uint32_t argc) {
     // 构造结构体
-    
+
     rule_entry_msg_size_ = sizeof(struct match_condition_msg) * argc +
                            sizeof(struct rule_entry_msg);
-    
+
     entry_ = (struct rule_entry_msg*)malloc(rule_entry_msg_size_);
-    if(entry_ == NULL){
-        std::cout<<"memory limit! malloc fail"<<std::endl;
-        return;
+    if (entry_ == NULL) {
+        std::cout << "memory limit! malloc fail" << std::endl;
+        return false;
     }
-    
-    memset(entry_,0,rule_entry_msg_size_);
+
+    memset(entry_, 0, rule_entry_msg_size_);
     // ip 处理
     if (parser_.exist("src-ip")) {
         auto ip = ip_parse(parser_.get<std::string>("src-ip"));
@@ -266,7 +231,7 @@ void cmd_parser::parse_args(uint32_t argc) {
         } else {
             // 失败处理
             std::cout << "arg src-ip parse fail" << std::endl;
-            return;
+            return false;
         }
     }
 
@@ -281,7 +246,7 @@ void cmd_parser::parse_args(uint32_t argc) {
         } else {
             // 失败处理
             std::cout << "arg dst-ip parse fail" << std::endl;
-            return;
+            return false;
         }
     }
 
@@ -297,7 +262,7 @@ void cmd_parser::parse_args(uint32_t argc) {
         } else {
             // 失败处理
             std::cout << "arg src-ip-mask parse fail" << std::endl;
-            return;
+            return false;
         }
     }
 
@@ -314,7 +279,7 @@ void cmd_parser::parse_args(uint32_t argc) {
             // 失败处理
             std::cout << "arg dst-ip-mask parse fail" << std::endl;
 
-            return;
+            return false;
         }
     }
 
@@ -331,7 +296,7 @@ void cmd_parser::parse_args(uint32_t argc) {
             // 失败处理
             std::cout << "arg src-port parse fail" << std::endl;
 
-            return;
+            return false;
         }
     }
 
@@ -347,7 +312,7 @@ void cmd_parser::parse_args(uint32_t argc) {
             // 失败处理
             std::cout << "arg dst-port parse fail" << std::endl;
 
-            return;
+            return false;
         }
     }
 
@@ -356,8 +321,7 @@ void cmd_parser::parse_args(uint32_t argc) {
         auto mac = mac_parse(parser_.get<std::string>("src-mac"));
         if (mac.has_value()) {
             memcpy(entry_->conditions[entry_->condition_count].src_mac,
-                   mac.value().data(),
-                   MAC_LENGTH);
+                   mac.value().data(), MAC_LENGTH);
             entry_->conditions[entry_->condition_count].match_type =
                 RULE_SRC_MAC;
             entry_->bitmap |= RULE_SRC_MAC;
@@ -366,7 +330,7 @@ void cmd_parser::parse_args(uint32_t argc) {
             // 失败处理
             std::cout << "arg src-mac parse fail" << std::endl;
 
-            return;
+            return false;
         }
     }
 
@@ -374,8 +338,7 @@ void cmd_parser::parse_args(uint32_t argc) {
         auto mac = mac_parse(parser_.get<std::string>("dst-mac"));
         if (mac.has_value()) {
             memcpy(entry_->conditions[entry_->condition_count].dst_mac,
-                   mac.value().data(),
-                   MAC_LENGTH);
+                   mac.value().data(), MAC_LENGTH);
             entry_->conditions[entry_->condition_count].match_type =
                 RULE_DST_MAC;
             entry_->bitmap |= RULE_DST_MAC;
@@ -383,7 +346,7 @@ void cmd_parser::parse_args(uint32_t argc) {
         } else {
             // 失败处理
             std::cout << "arg dst-mac parse fail" << std::endl;
-            return;
+            return false;
         }
     }
 
@@ -400,7 +363,7 @@ void cmd_parser::parse_args(uint32_t argc) {
         } else {
             // 失败处理
             std::cout << "arg proto parse fail" << std::endl;
-            return;
+            return false;
         }
     }
 
@@ -410,7 +373,6 @@ void cmd_parser::parse_args(uint32_t argc) {
             RULE_STATE_POLICY_DENY_ALL_NEW;
         entry_->bitmap |= RULE_STATE_POLICY_DENY_ALL_NEW;
         entry_->condition_count++;
-        
     }
 
     // 处理content
@@ -421,9 +383,9 @@ void cmd_parser::parse_args(uint32_t argc) {
         //
         // 序列化
         if (contents.has_value()) {
-            uint32_t total_size = 1 + contents.value().size();
+            uint32_t total_size = sizeof(uint32_t) + contents.value().size();
             for (auto& str : contents.value()) {
-                total_size += str.length();
+                total_size += str.length() + sizeof(uint32_t);
             }
             buffer_.resize(total_size);
             auto ptr = buffer_.data();
@@ -438,10 +400,9 @@ void cmd_parser::parse_args(uint32_t argc) {
                 std::memcpy(ptr, str.data(), str.length());
                 ptr += str.length();
             }
-            buffer_offset_ = ptr - start;
-            entry_->conditions[entry_->condition_count].buffer_offset = 0;
-            entry_->conditions[entry_->condition_count].buffer_len =
+            entry_->conditions[entry_->condition_count].buffer_offset =
                 buffer_offset_;
+            entry_->conditions[entry_->condition_count].buffer_len = total_size;
             entry_->conditions[entry_->condition_count].match_type =
                 RULE_CONTENT;
             entry_->bitmap |= RULE_CONTENT;
@@ -450,7 +411,7 @@ void cmd_parser::parse_args(uint32_t argc) {
             std::cout << "arg content parse fail" << std::endl;
 
             // 失败处理
-            return;
+            return false;
         }
     }
 
@@ -459,7 +420,7 @@ void cmd_parser::parse_args(uint32_t argc) {
         // [时间对个数] [HH:MM][HH:MM] 一个时间对2*4 = 8字节
         auto times = time_parse(parser_.get<std::string>("time-drop"));
         if (times.has_value()) {
-            buffer_.resize(buffer_.size() + 1 +
+            buffer_.resize(buffer_.size() + sizeof(uint32_t) +
                            sizeof(uint32_t) * 2 * times.value().size());
             auto ptr = buffer_.data() + buffer_offset_;
             auto number_cpy = [&](uint32_t num) {
@@ -488,7 +449,7 @@ void cmd_parser::parse_args(uint32_t argc) {
             // 失败处理
             std::cout << "arg time-drop parse fail" << std::endl;
 
-            return;
+            return false;
         }
     }
     if (parser_.exist("time-accept")) {
@@ -524,7 +485,7 @@ void cmd_parser::parse_args(uint32_t argc) {
         } else {
             // 失败处理
             std::cout << "arg time-accept parse fail" << std::endl;
-            return;
+            return false;
         }
     }
 
@@ -548,4 +509,5 @@ void cmd_parser::parse_args(uint32_t argc) {
         entry_->bitmap |= RULE_INTERFACE;
         entry_->condition_count++;
     }
+    return true;
 }

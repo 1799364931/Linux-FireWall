@@ -20,7 +20,7 @@ class cmd_parser {
 
     cmdline::parser& get_parser() { return this->parser_; }
 
-    void parse_args(uint32_t argc);
+    bool parse_args(uint32_t argc);
 
     std::vector<char> get_msg_buffer() {
         std::vector<char> msg_buffer(rule_entry_msg_size_ + buffer_.size());

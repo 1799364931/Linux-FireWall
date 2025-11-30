@@ -36,8 +36,9 @@ void release_rule_list(struct rule_list* list) {
     struct rule_list_node *pos, *n;
     list_for_each_entry_safe(pos, n, &list->nodes, list) {
         // todo 释放内存
-        // pos -> match_type -> contents?
+        list_del(&pos->list);
 
+        // pos -> match_type -> contents?
         for (uint32_t i = 0; i < pos->condition_count; i++) {
             switch (pos->conditions[i].match_type) {
                 case RULE_INTERFACE: {
@@ -47,6 +48,7 @@ void release_rule_list(struct rule_list* list) {
                 }
                 case RULE_CONTENT: {
                     cleanup_content_rules(pos->conditions[i].content_list);
+                    printk(KERN_INFO "content free success!");
                     break;
                 }
                 case RULE_TIME_ACCEPT: {
@@ -59,7 +61,6 @@ void release_rule_list(struct rule_list* list) {
                 }
             }
         }
-        list_del(&pos->list);
         kfree(pos);
     }
 }

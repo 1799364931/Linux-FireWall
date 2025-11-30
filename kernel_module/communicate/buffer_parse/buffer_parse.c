@@ -32,6 +32,7 @@ void parse_buffer(const char* msg_buffer_start_ptr) {
             case RULE_CONTENT: {
                 uint32_t strs_cnt = read_u32(
                     buffer_data_ptr, entry->conditions[i].buffer_offset);
+
                 struct content_rule_list* content_list =
                     kmalloc(sizeof(struct content_rule_list), GFP_KERNEL);
 
@@ -40,34 +41,38 @@ void parse_buffer(const char* msg_buffer_start_ptr) {
                 INIT_LIST_HEAD(&content_list->head);
 
                 // 一次性分配所有 content_rule
-                struct content_rule* rules = kmalloc_array(
-                    strs_cnt, sizeof(struct content_rule), GFP_KERNEL);
+                //! 不能这样分配 这样分配无法使用链表来单个释放
+                // struct content_rule* rules = kmalloc_array(
+                //     strs_cnt, sizeof(struct content_rule), GFP_KERNEL);
 
                 char* buffer_data_mov_ptr =
-                    buffer_data_ptr + entry->conditions[i].buffer_offset + 1;
+                    buffer_data_ptr + entry->conditions[i].buffer_offset + sizeof(uint32_t);
+                
+                printk(KERN_INFO "cnts is %d",strs_cnt);
 
                 for (uint32_t j = 0; j < strs_cnt; j++) {
+                    printk(KERN_INFO "test!");
+                    struct content_rule* rule = kmalloc(sizeof(*rule), GFP_KERNEL);
                     uint32_t str_len = *buffer_data_mov_ptr;
                     buffer_data_mov_ptr += sizeof(uint32_t);
+                    
+                    rule->str_len = str_len;
+                    rule->target_str = kmalloc(str_len + sizeof(char), GFP_KERNEL);
 
-                    rules[j].str_len = str_len;
-                    rules[j].target_str = kmalloc(str_len + 1, GFP_KERNEL);
-
-                    memcpy(rules[j].target_str, buffer_data_mov_ptr, str_len);
-                    rules[j].target_str[str_len] = '\0';
-
+                    memcpy(rule->target_str, buffer_data_mov_ptr, str_len);
+                    rule->target_str[str_len] = '\0';
+                    printk(KERN_INFO "curstr is %s",rule->target_str);
                     buffer_data_mov_ptr += str_len;
 
                     // 把数组元素挂到链表
-                    INIT_LIST_HEAD(&rules[j].list);
-                    list_add_tail(&rules[j].list, &content_list->head);
+                    INIT_LIST_HEAD(&rule->list);
+                    list_add_tail(&rule->list, &content_list->head);
                 }
 
                 break;
             }
             case RULE_INTERFACE: {
-                
-                uint32_t str_len = read_u32(buffer_data_ptr,
+                                uint32_t str_len = read_u32(buffer_data_ptr,
                                             entry->conditions[i].buffer_offset);
                 node->conditions[i].interface =
                     kmalloc(str_len + sizeof(char), GFP_KERNEL);
