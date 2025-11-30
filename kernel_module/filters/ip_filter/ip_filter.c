@@ -8,7 +8,7 @@ unsigned int ip_filter_hook(void* priv,
                             struct sk_buff* skb,
                             const struct nf_hook_state* state) {
     // this is the first hook?
-    memset(skb->cb, 0, sizeof(skb->cb));
+    memset(skb->cb, 0, sizeof(uint64_t));
     struct iphdr* iph;
 
     if (!skb)
@@ -32,7 +32,7 @@ unsigned int ip_filter_hook(void* priv,
                
                 switch (mov->conditions[i].match_type) {
                     case RULE_SRC_IP: {
-                         printk(KERN_INFO "!!!! %u %u",mov->conditions[i].src_ip,iph->saddr);
+                        printk(KERN_INFO "src=%pI4 dst=%pI4\n",mov->conditions[i].src_ip,iph->saddr);
                         if (iph->saddr == mov->conditions[i].src_ip) {
                             SKB_RULE_BITMAP(skb) |= RULE_SRC_IP;
                             printk(KERN_INFO "yes");
