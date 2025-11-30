@@ -22,7 +22,7 @@ void cleanup_content_rules(struct content_rule_list* content_list) {
     list_for_each_entry_safe(rule, tmp, &content_list->head, list) {
         list_del(&rule->list);
         kfree(rule->target_str);
-        kfree(rule)
+        kfree(rule);
     }
 
     content_list->count = 0;

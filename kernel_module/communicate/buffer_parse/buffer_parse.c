@@ -14,8 +14,11 @@ void parse_buffer(const char* msg_buffer_start_ptr) {
     uint32_t rule_entry_msg_size =
         sizeof(struct rule_entry_msg) +
         entry->condition_count * sizeof(struct match_condition_msg);
+
     char* buffer_data_ptr = (char*)msg_buffer_start_ptr + rule_entry_msg_size;
-    printk(KERN_INFO "rule_entry_msg size:%d\n", rule_entry_msg_size);
+
+    printk(KERN_INFO "rule_entry_msg size:%d,condition_count is %d \n",
+           rule_entry_msg_size, entry->condition_count);
     // 内核规则链表节点开辟空间
     node->conditions = kmalloc(
         entry->condition_count * sizeof(struct match_condition), GFP_KERNEL);
@@ -45,23 +48,26 @@ void parse_buffer(const char* msg_buffer_start_ptr) {
                 // struct content_rule* rules = kmalloc_array(
                 //     strs_cnt, sizeof(struct content_rule), GFP_KERNEL);
 
-                char* buffer_data_mov_ptr =
-                    buffer_data_ptr + entry->conditions[i].buffer_offset + sizeof(uint32_t);
-                
-                printk(KERN_INFO "cnts is %d",strs_cnt);
+                char* buffer_data_mov_ptr = buffer_data_ptr +
+                                            entry->conditions[i].buffer_offset +
+                                            sizeof(uint32_t);
+
+                printk(KERN_INFO "cnts is %d", strs_cnt);
 
                 for (uint32_t j = 0; j < strs_cnt; j++) {
                     printk(KERN_INFO "test!");
-                    struct content_rule* rule = kmalloc(sizeof(*rule), GFP_KERNEL);
+                    struct content_rule* rule =
+                        kmalloc(sizeof(*rule), GFP_KERNEL);
                     uint32_t str_len = *buffer_data_mov_ptr;
                     buffer_data_mov_ptr += sizeof(uint32_t);
-                    
+
                     rule->str_len = str_len;
-                    rule->target_str = kmalloc(str_len + sizeof(char), GFP_KERNEL);
+                    rule->target_str =
+                        kmalloc(str_len + sizeof(char), GFP_KERNEL);
 
                     memcpy(rule->target_str, buffer_data_mov_ptr, str_len);
                     rule->target_str[str_len] = '\0';
-                    printk(KERN_INFO "curstr is %s",rule->target_str);
+                    printk(KERN_INFO "curstr is %s", rule->target_str);
                     buffer_data_mov_ptr += str_len;
 
                     // 把数组元素挂到链表
@@ -72,7 +78,7 @@ void parse_buffer(const char* msg_buffer_start_ptr) {
                 break;
             }
             case RULE_INTERFACE: {
-                                uint32_t str_len = read_u32(buffer_data_ptr,
+                uint32_t str_len = read_u32(buffer_data_ptr,
                                             entry->conditions[i].buffer_offset);
                 node->conditions[i].interface =
                     kmalloc(str_len + sizeof(char), GFP_KERNEL);
@@ -92,7 +98,7 @@ void parse_buffer(const char* msg_buffer_start_ptr) {
                     buffer_data_ptr, entry->conditions[i].buffer_offset);
                 time_list->count = time_pair_cnt;
                 node->conditions[i].time_list = time_list;
-
+                INIT_LIST_HEAD(&time_list->head);
                 int* buffer_data_mov_ptr =
                     (int*)(buffer_data_ptr +
                            entry->conditions[i].buffer_offset +
@@ -111,13 +117,14 @@ void parse_buffer(const char* msg_buffer_start_ptr) {
             }
             case RULE_TIME_DROP: {
                 // [时间对个数] [HH:MM][HH:MM] 一个时间2*4 = 8字节
+
                 struct time_rule_list* time_list =
                     kmalloc(sizeof(struct time_rule_list), GFP_KERNEL);
                 uint32_t time_pair_cnt = read_u32(
                     buffer_data_ptr, entry->conditions[i].buffer_offset);
                 time_list->count = time_pair_cnt;
                 node->conditions[i].time_list = time_list;
-
+                INIT_LIST_HEAD(&time_list->head);
                 int* buffer_data_mov_ptr =
                     (int*)(buffer_data_ptr +
                            entry->conditions[i].buffer_offset +
@@ -135,8 +142,8 @@ void parse_buffer(const char* msg_buffer_start_ptr) {
             }
             default: {
                 //*这里报错是没问题的，src_ip确实比union_size更小
-                memcpy(&node->conditions[i].src_ip,
-                       &entry->conditions[i].src_ip, union_size);
+                memcpy(&node->conditions[i].dst_mac,
+                       &entry->conditions[i].dst_mac, 6);
             }
         }
     }

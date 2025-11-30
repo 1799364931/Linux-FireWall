@@ -6,6 +6,20 @@
 #include <string>
 #include <vector>
 
+std::vector<std::string> split_string(const std::string& str, char delimiter) {
+    std::vector<std::string> result;
+    std::string token;
+    std::stringstream ss(str);
+
+    while (std::getline(ss, token, delimiter)) {
+        if (!token.empty()) {
+            result.push_back(token);
+        }
+    }
+
+    return result;
+}
+
 void cmd_parser::build_parser() {
     parser_.add<std::string>("src-ip", 0, "src ip", false);
     parser_.add<std::string>("dst-ip", 0, "dst ip", false);
@@ -116,73 +130,48 @@ std::optional<uint16_t> cmd_parser::proto_parse(std::string proto_str) {
 // "xx:xx xx:xx"
 std::optional<std::vector<std::pair<std::pair<int, int>, std::pair<int, int>>>>
 cmd_parser::time_parse(std::string time_str) {
-    // 去掉外层引号
-    if (time_str.size() >= 2 && time_str.front() == '"' &&
-        time_str.back() == '"') {
-        time_str = time_str.substr(1, time_str.size() - 2);
-    } else {
-        return std::nullopt;  // 必须有外层双引号
-    }
-
     // 提取内部所有被引号包裹的子串
     std::vector<std::string> groups;
-    {
-        bool in_quote = false;
-        std::string current;
-        for (char c : time_str) {
-            if (c == '"') {
-                if (!in_quote) {
-                    in_quote = true;
-                    current.clear();
-                } else {
-                    in_quote = false;
-                    groups.push_back(current);
-                }
-            } else if (in_quote) {
-                current.push_back(c);
-            }
-        }
-    }
+    groups = split_string(time_str, ' ');
 
-    if (groups.empty())
+    if (groups.empty()) {
         return std::nullopt;
-
-    auto parse_time =
-        [](const std::string& t) -> std::optional<std::pair<int, int>> {
-        if (t.size() != 5 || t[2] != ':')
-            return std::nullopt;
-        if (!isdigit(static_cast<unsigned char>(t[0])) ||
-            !isdigit(static_cast<unsigned char>(t[1])) ||
-            !isdigit(static_cast<unsigned char>(t[3])) ||
-            !isdigit(static_cast<unsigned char>(t[4])))
-            return std::nullopt;
-
-        int hour = std::stoi(t.substr(0, 2));
-        int minute = std::stoi(t.substr(3, 2));
-        if (hour < 0 || hour > 23 || minute < 0 || minute > 59)
-            return std::nullopt;
-
-        return std::make_pair(hour, minute);
-    };
-
+    }
     std::vector<std::pair<std::pair<int, int>, std::pair<int, int>>> result;
 
-    // 每个子串必须恰好包含两个时间
-    for (const auto& g : groups) {
-        std::stringstream ss(g);
-        std::string t1, t2;
-        if (!(ss >> t1 >> t2))
-            return std::nullopt;
-        std::string extra;
-        if (ss >> extra)
-            return std::nullopt;
+    if (groups.size() % 2 != 0) {
+        // 必须成对出现
+        return std::nullopt;
+    }
 
-        auto p1 = parse_time(t1);
-        auto p2 = parse_time(t2);
-        if (!p1 || !p2)
-            return std::nullopt;
+    for (size_t i = 0; i < groups.size(); i += 2) {
+        auto parse_time =
+            [](const std::string& s) -> std::optional<std::pair<int, int>> {
+            int hour, minute;
+            char colon;
+            std::istringstream iss(s);
+            if (!(iss >> hour >> colon >> minute)) {
+                return std::nullopt;
+            }
+            if (colon != ':' || hour < 0 || hour > 23 || minute < 0 ||
+                minute > 59) {
+                return std::nullopt;
+            }
+            return std::make_pair(hour, minute);
+        };
 
-        result.emplace_back(*p1, *p2);
+        auto start = parse_time(groups[i]);
+        auto end = parse_time(groups[i + 1]);
+
+        if (!start || !end) {
+            return std::nullopt;  // 格式错误或范围非法
+        }
+
+        result.push_back({*start, *end});
+    }
+
+    if (result.empty()) {
+        return std::nullopt;
     }
 
     return result;
@@ -190,19 +179,12 @@ cmd_parser::time_parse(std::string time_str) {
 
 std::optional<std::vector<std::string>> cmd_parser::content_parse(
     std::string contents) {
-    std::vector<std::string> result;
-
-    // 使用 stringstream 按空格分割
-    std::istringstream iss(contents);
-    std::string token;
-    while (iss >> token) {
-        result.push_back(token);
-    }
+    std::vector<std::string> result = split_string(contents, ' ');
 
     if (result.empty())
         return std::nullopt;
 
-    return std::make_optional(result);
+    return result;
 }
 
 bool cmd_parser::parse_args(uint32_t argc) {
@@ -391,7 +373,6 @@ bool cmd_parser::parse_args(uint32_t argc) {
             auto ptr = buffer_.data();
             int len = static_cast<int>(contents.value().size());
             std::memcpy(ptr, &len, sizeof(len));
-            auto start = ptr;
             ptr += sizeof(int);
             for (auto& str : contents.value()) {
                 len = static_cast<int>(str.length());
@@ -421,7 +402,7 @@ bool cmd_parser::parse_args(uint32_t argc) {
         auto times = time_parse(parser_.get<std::string>("time-drop"));
         if (times.has_value()) {
             buffer_.resize(buffer_.size() + sizeof(uint32_t) +
-                           sizeof(uint32_t) * 2 * times.value().size());
+                           sizeof(uint32_t) * 4 * times.value().size());
             auto ptr = buffer_.data() + buffer_offset_;
             auto number_cpy = [&](uint32_t num) {
                 uint32_t tmp = num;
@@ -438,13 +419,14 @@ bool cmd_parser::parse_args(uint32_t argc) {
             }
             //
             entry_->conditions[entry_->condition_count].buffer_len =
-                sizeof(uint32_t) + sizeof(uint32_t) * 2 * times.value().size();
+                sizeof(uint32_t) + sizeof(uint32_t) * 4 * times.value().size();
             entry_->conditions[entry_->condition_count].buffer_offset =
                 buffer_offset_;
             buffer_offset_ = buffer_.size();
             entry_->conditions[entry_->condition_count].match_type =
                 RULE_TIME_DROP;
             entry_->bitmap |= RULE_TIME_DROP;
+            entry_->condition_count++;
         } else {
             // 失败处理
             std::cout << "arg time-drop parse fail" << std::endl;
@@ -456,8 +438,8 @@ bool cmd_parser::parse_args(uint32_t argc) {
         // [时间对个数] [HH:MM][HH:MM] 一个时间对2*4 = 8字节
         auto times = time_parse(parser_.get<std::string>("time-accept"));
         if (times.has_value()) {
-            buffer_.resize(buffer_.size() + 1 +
-                           sizeof(uint32_t) * 2 * times.value().size());
+            buffer_.resize(buffer_.size() + sizeof(uint32_t) +
+                           sizeof(uint32_t) * 4 * times.value().size());
             auto ptr = buffer_.data() + buffer_offset_;
             auto number_cpy = [&](uint32_t num) {
                 uint32_t tmp = num;
@@ -474,7 +456,7 @@ bool cmd_parser::parse_args(uint32_t argc) {
             }
             //
             entry_->conditions[entry_->condition_count].buffer_len =
-                sizeof(uint32_t) + sizeof(uint32_t) * 2 * times.value().size();
+                sizeof(uint32_t) + sizeof(uint32_t) * 4 * times.value().size();
             entry_->conditions[entry_->condition_count].buffer_offset =
                 buffer_offset_;
             buffer_offset_ = buffer_.size();
@@ -482,6 +464,7 @@ bool cmd_parser::parse_args(uint32_t argc) {
                 RULE_TIME_ACCEPT;
             entry_->bitmap |= RULE_TIME_ACCEPT;
             entry_->condition_count++;
+
         } else {
             // 失败处理
             std::cout << "arg time-accept parse fail" << std::endl;

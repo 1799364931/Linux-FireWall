@@ -51,10 +51,10 @@ unsigned int time_filter_hook(void* priv,
                         }
                     }
                     // 遍历完毕后判断是否应该丢弃
-                    if (drop_count){
+                    if (drop_count && mov->conditions[i].match_type == RULE_TIME_DROP){
                         SKB_RULE_BITMAP(skb) |= RULE_TIME_DROP;
                     }
-                    if (!accept_count) {
+                    if (!accept_count && mov->conditions[i].match_type == RULE_TIME_ACCEPT) {
                         SKB_RULE_BITMAP(skb) |= RULE_TIME_ACCEPT;
                     }
                 }

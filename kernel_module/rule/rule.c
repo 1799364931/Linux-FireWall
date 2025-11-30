@@ -48,7 +48,6 @@ void release_rule_list(struct rule_list* list) {
                 }
                 case RULE_CONTENT: {
                     cleanup_content_rules(pos->conditions[i].content_list);
-                    printk(KERN_INFO "content free success!");
                     break;
                 }
                 case RULE_TIME_ACCEPT: {

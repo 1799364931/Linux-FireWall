@@ -35,7 +35,6 @@ int add_time_rule(int start_hour,
                   int end_min,
                   struct time_rule_list* time_list) {
     struct time_rule* new_rule;
-
     /* 参数验证 */
     if (start_hour < 0 || start_hour > 23 || end_hour < 0 || end_hour > 23 ||
         start_min < 0 || start_min > 59 || end_min < 0 || end_min > 59) {
@@ -58,10 +57,12 @@ int add_time_rule(int start_hour,
 
     /* 添加到链表 */
     list_add_tail(&new_rule->list, &time_list->head);
+    printk(KERN_INFO "%d:%d %d:%d", start_hour, start_min, end_hour, end_min);
+
     time_list->count++;
 
-    printk(KERN_INFO "TimeWall: Added rule - %02d:%02d-%02d:%02d\n",
-           start_hour, start_min, end_hour, end_min);
+    printk(KERN_INFO "TimeWall: Added rule - %02d:%02d-%02d:%02d\n", start_hour,
+           start_min, end_hour, end_min);
 
     return 0;
 }
