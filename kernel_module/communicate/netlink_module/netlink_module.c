@@ -1,7 +1,6 @@
 // my_netlink_kernel.c
 #include "netlink_module.h"
-//todo 这里得写到firewall 模块里面
-
+// todo 这里得写到firewall 模块里面
 
 /// ---------- 命令处理函数 ----------
 int handle_recv_add_rule_msg(struct sk_buff* skb, struct genl_info* info) {
@@ -20,6 +19,30 @@ int handle_recv_add_rule_msg(struct sk_buff* skb, struct genl_info* info) {
     return 0;
 }
 
+int handle_recv_mode_change_msg(struct sk_buff* skb, struct genl_info* info) {
+    if (!info->attrs[ATTR_BUF]) {
+        pr_err("netlink: missing buffer attribute\n");
+        return -EINVAL;
+    }
+
+    const void* buf = nla_data(info->attrs[ATTR_BUF]);
+    int len = nla_len(info->attrs[ATTR_BUF]);
+
+    pr_info("netlink: received buffer length=%d\n", len);
+
+    char mode = *((char*)buf);
+
+    if (mode == 'w' || mode == 'W') {
+        printk(KERN_INFO "change to while list mode");
+        BLACK_LIST_ENABLE = false;
+    } else if (mode == 'b' || mode == 'B') {
+        printk(KERN_INFO "change to black list mode");
+        BLACK_LIST_ENABLE = true;
+    }
+
+    return 0;
+}
+
 const struct nla_policy my_policy[__ATTR_MAX + 1] = {
     [ATTR_BUF] = {.type = NLA_BINARY},  // 定义为二进制数据
 };
@@ -32,7 +55,12 @@ const struct genl_ops my_ops[] = {
         .policy = my_policy,
         .doit = handle_recv_add_rule_msg,  // 收到命令时调用
     },
-};
+    {
+        .cmd = CMD_CHANGE_MOD,
+        .flags = 0,
+        .policy = my_policy,
+        .doit = handle_recv_mode_change_msg,
+    }};
 
 struct genl_family my_family = {
     .name = "myfirewall",  // 用户态要用的 family 名称

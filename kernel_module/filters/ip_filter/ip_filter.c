@@ -7,10 +7,8 @@
 unsigned int ip_filter_hook(void* priv,
                             struct sk_buff* skb,
                             const struct nf_hook_state* state) {
-
-
-    //this is the first hook?
-    memset(skb->cb,0,sizeof(skb->cb));
+    // this is the first hook?
+    memset(skb->cb, 0, sizeof(skb->cb));
     struct iphdr* iph;
 
     if (!skb)
@@ -19,11 +17,15 @@ unsigned int ip_filter_hook(void* priv,
     iph = ip_hdr(skb);
     if (!iph)
         return NF_ACCEPT;
+    //* 根据全局变量打标记
+    if(BLACK_LIST_ENABLE){
+        SKB_RULE_BITMAP(skb) |= RULE_BLACK;
+    }
 
-    struct rule_list* balck_list = get_rule_list(RULE_LIST_BLACK);
+    struct rule_list* rule_list = get_rule_list(
+        ENABLE_BLACK_LIST(skb) ? RULE_LIST_BLACK : RULE_LIST_WHITE);
     struct rule_list_node* mov;
-    // 黑名单过滤
-    list_for_each_entry(mov, &balck_list->nodes, list) {
+    list_for_each_entry(mov, &rule_list->nodes, list) {
         // 判断是否有IP相关的 过滤规则
         if (mov->rule_bitmap & (RULE_IP_FILTER)) {
             for (uint32_t i = 0; i < mov->condition_count; i++) {
@@ -60,7 +62,7 @@ unsigned int ip_filter_hook(void* priv,
                 }
             }
         }
-        if (mov->rule_bitmap == SKB_RULE_BITMAP(skb)) {
+        if (ENABLE_BLACK_LIST(skb) && mov->rule_bitmap == SKB_RULE_BITMAP(skb)) {
             return NF_DROP;
         }
     }

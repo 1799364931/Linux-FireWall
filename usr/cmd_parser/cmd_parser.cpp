@@ -43,6 +43,11 @@ void cmd_parser::build_parser() {
         "content", 0, "filter the package whose payload contains content",
         false);
     parser_.add<std::string>("interface", 0, "interface", false);
+
+      parser_.add<std::string>("mode", 0, "mode", false);
+
+    parser_.add("drop", 0, "add black list rule");
+    parser_.add("accept", 0, "add white list rule");
 }
 
 std::optional<uint32_t> cmd_parser::ip_parse(std::string ip_str) {
@@ -188,6 +193,8 @@ std::optional<std::vector<std::string>> cmd_parser::content_parse(
 }
 
 bool cmd_parser::parse_args(uint32_t argc) {
+    //
+
     // 构造结构体
 
     rule_entry_msg_size_ = sizeof(struct match_condition_msg) * argc +
@@ -200,6 +207,16 @@ bool cmd_parser::parse_args(uint32_t argc) {
     }
 
     memset(entry_, 0, rule_entry_msg_size_);
+
+    if (!(parser_.exist("drop") || parser_.exist("accept"))) {
+        std::cout << "except --drop or --accept to define rule" << std::endl;
+        return false;
+    }
+
+    if (parser_.exist("drop")) {
+        entry_->bitmap |= RULE_BLACK;
+    }
+
     // ip 处理
     if (parser_.exist("src-ip")) {
         auto ip = ip_parse(parser_.get<std::string>("src-ip"));

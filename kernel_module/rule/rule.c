@@ -2,6 +2,15 @@
 
 struct rule_list* black_list_singleton = NULL;
 struct rule_list* white_list_singleton = NULL;
+bool BLACK_LIST_ENABLE = true;
+struct mutex black_list_lock;
+struct mutex white_list_lock;
+struct mutex rule_id_lock;
+uint32_t rule_id = 0;
+
+DEFINE_MUTEX(rule_id_lock);
+DEFINE_MUTEX(black_list_lock);
+DEFINE_MUTEX(white_list_lock);
 
 uint64_t compute_bitmap(uint32_t size, struct match_condition* conditions) {
     uint64_t bitmap = 0;

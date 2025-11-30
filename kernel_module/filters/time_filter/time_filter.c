@@ -16,7 +16,6 @@ unsigned int time_filter_hook(void* priv,
         return NF_ACCEPT;
     }
 
-
     /* 遍历所有时间规则 */
 
     /*
@@ -26,47 +25,101 @@ unsigned int time_filter_hook(void* priv,
         如果 现在时间不属于规则包含时间 如果是丢弃就不管
         需要找到所有的接收时间的并集
     */
-    struct rule_list* balck_list = get_rule_list(RULE_LIST_BLACK);
-    struct rule_list_node* mov;
-    // 黑名单过滤
-
-    list_for_each_entry(mov, &balck_list->nodes, list) {
-        if (mov->rule_bitmap & (RULE_TIME_ACCEPT | RULE_TIME_DROP)) {
-            for (uint32_t i = 0; i < mov->condition_count; i++) {
-                if (mov->conditions[i].match_type == RULE_TIME_ACCEPT ||
-                    mov->conditions[i].match_type == RULE_TIME_DROP) {
-                    uint32_t accept_count = 0, drop_count = 0;
-                    list_for_each_entry(
-                        time_rule, &mov->conditions[i].time_list->head, list) {
-                        /* 检查当前时间是否在规则范围内 */
-                        if (check_time_in_range(
-                                time_rule->start_hour, time_rule->start_min,
-                                time_rule->end_hour, time_rule->end_min)) {
-                            /* 更新匹配计数 */
-                            if (mov->conditions[i].match_type == RULE_TIME_ACCEPT) {
-                                accept_count++;
-                            } else {
-                                drop_count++;
+    if (ENABLE_BLACK_LIST(skb)) {
+        struct rule_list* balck_list = get_rule_list(RULE_LIST_BLACK);
+        struct rule_list_node* mov;
+        // 黑名单过滤
+        list_for_each_entry(mov, &balck_list->nodes, list) {
+            if (mov->rule_bitmap & (RULE_TIME_ACCEPT | RULE_TIME_DROP)) {
+                for (uint32_t i = 0; i < mov->condition_count; i++) {
+                    if (mov->conditions[i].match_type == RULE_TIME_ACCEPT ||
+                        mov->conditions[i].match_type == RULE_TIME_DROP) {
+                        uint32_t accept_count = 0, drop_count = 0;
+                        list_for_each_entry(time_rule,
+                                            &mov->conditions[i].time_list->head,
+                                            list) {
+                            /* 检查当前时间是否在规则范围内 */
+                            if (check_time_in_range(
+                                    time_rule->start_hour, time_rule->start_min,
+                                    time_rule->end_hour, time_rule->end_min)) {
+                                /* 更新匹配计数 */
+                                if (mov->conditions[i].match_type ==
+                                    RULE_TIME_ACCEPT) {
+                                    accept_count++;
+                                } else {
+                                    drop_count++;
+                                }
                             }
                         }
-                    }
-                    // 遍历完毕后判断是否应该丢弃
-                    if (drop_count && mov->conditions[i].match_type == RULE_TIME_DROP){
-                        SKB_RULE_BITMAP(skb) |= RULE_TIME_DROP;
-                    }
-                    if (!accept_count && mov->conditions[i].match_type == RULE_TIME_ACCEPT) {
-                        SKB_RULE_BITMAP(skb) |= RULE_TIME_ACCEPT;
+                        // 遍历完毕后判断是否应该丢弃
+                        if (drop_count &&
+                            mov->conditions[i].match_type == RULE_TIME_DROP) {
+                            SKB_RULE_BITMAP(skb) |= RULE_TIME_DROP;
+                        }
+                        if (!accept_count &&
+                            mov->conditions[i].match_type == RULE_TIME_ACCEPT) {
+                            SKB_RULE_BITMAP(skb) |= RULE_TIME_ACCEPT;
+                        }
                     }
                 }
-            }
-            if (mov->rule_bitmap == SKB_RULE_BITMAP(skb)) {
-                return NF_DROP;
+                if (mov->rule_bitmap == SKB_RULE_BITMAP(skb)) {
+                    return NF_DROP;
+                }
             }
         }
-    }
 
-    /* 没有匹配的规则，默认接受 */
-    return NF_ACCEPT;
+        /* 没有匹配的规则，默认接受 */
+        return NF_ACCEPT;
+    } else {
+        struct rule_list* white_list = get_rule_list(RULE_LIST_WHITE);
+        struct rule_list_node* mov;
+        // 白名单
+        /*
+            如果drop
+        
+        */
+        list_for_each_entry(mov, &white_list->nodes, list) {
+            if (mov->rule_bitmap & (RULE_TIME_ACCEPT | RULE_TIME_DROP)) {
+                for (uint32_t i = 0; i < mov->condition_count; i++) {
+                    if (mov->conditions[i].match_type == RULE_TIME_ACCEPT ||
+                        mov->conditions[i].match_type == RULE_TIME_DROP) {
+                        uint32_t accept_count = 0, drop_count = 0;
+                        list_for_each_entry(time_rule,
+                                            &mov->conditions[i].time_list->head,
+                                            list) {
+                            /* 检查当前时间是否在规则范围内 */
+                            if (check_time_in_range(
+                                    time_rule->start_hour, time_rule->start_min,
+                                    time_rule->end_hour, time_rule->end_min)) {
+                                /* 更新匹配计数 */
+                                if (mov->conditions[i].match_type ==
+                                    RULE_TIME_ACCEPT) {
+                                    accept_count++;
+                                } else {
+                                    drop_count++;
+                                }
+                            }
+                        }
+                        // 遍历完毕后判断是否应该丢弃
+                        if (!drop_count &&
+                            mov->conditions[i].match_type == RULE_TIME_DROP) {
+                            SKB_RULE_BITMAP(skb) |= RULE_TIME_DROP;
+                        }
+                        // 什么时候才允许通过？
+                        // 
+                        if (accept_count &&
+                            mov->conditions[i].match_type == RULE_TIME_ACCEPT) {
+                            SKB_RULE_BITMAP(skb) |= RULE_TIME_ACCEPT;
+                        }
+                    }
+                }
+
+            }
+        }
+
+        /* 没有匹配的规则，默认通过 */
+        return NF_ACCEPT;
+    }
 }
 
 /**

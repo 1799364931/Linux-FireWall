@@ -12,15 +12,16 @@ unsigned int interface_filter_hook(void* priv,
 
     iph = ip_hdr(skb);
 
-    struct rule_list* balck_list = get_rule_list(RULE_LIST_BLACK);
-    struct rule_list_node* mov;
-    // 黑名单过滤
     dev = state->in;
     if (!dev) {
         return NF_ACCEPT;
     }
 
-    list_for_each_entry(mov, &balck_list->nodes, list) {
+    struct rule_list* rule_list = get_rule_list(
+        ENABLE_BLACK_LIST(skb) ? RULE_LIST_BLACK : RULE_LIST_WHITE);
+    struct rule_list_node* mov;
+    //* 最后流入的hook需要判断白名单是否需要drop
+    list_for_each_entry(mov, &rule_list->nodes, list) {
         // 判断是否有IP相关的 过滤规则
         if (mov->rule_bitmap & (RULE_INTERFACE)) {
             for (uint32_t i = 0; i < mov->condition_count; i++) {
@@ -31,10 +32,24 @@ unsigned int interface_filter_hook(void* priv,
                 }
             }
         }
-        if (mov->rule_bitmap == SKB_RULE_BITMAP(skb)) {
+        printk(KERN_INFO "look %lld,%lld", mov->rule_bitmap ,SKB_RULE_BITMAP(skb));
+        if (ENABLE_BLACK_LIST(skb) && mov->rule_bitmap == SKB_RULE_BITMAP(skb)) {
             return NF_DROP;
+        }
+        // 白名单不会打上 tag
+        // 黑名单会打上 tag
+        // SKB_RULE_BITMAP(skb) 白名单/黑名单
+        // mov->rule_bitmap 标记了黑名单
+        if (!ENABLE_BLACK_LIST(skb) && mov->rule_bitmap == SKB_RULE_BITMAP(skb)) {
+            return NF_ACCEPT;
         }
     }
 
-    return NF_ACCEPT;
+    if(ENABLE_BLACK_LIST(skb)){
+        return NF_ACCEPT;
+    }
+    else{
+        return NF_DROP;
+    }
+
 }

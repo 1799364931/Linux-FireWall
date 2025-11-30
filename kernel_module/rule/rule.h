@@ -4,12 +4,11 @@
 #ifndef _RULE_H
 #define _RULE_H
 
-#include <linux/types.h>
 #include <linux/list.h>
+#include <linux/types.h>
+
 #include "../../public_structs/match_condition_msg.h"
 #include "../../public_structs/rule_bitmap.h"
-#include "../filters/content_filter/content_filter_list/content_filter_list.h"
-#include "../filters/time_filter/time_filter_list/time_filter_list.h"
 #include "../filters/content_filter/content_filter_list/content_filter_list.h"
 #include "../filters/time_filter/time_filter_list/time_filter_list.h"
 
@@ -30,16 +29,17 @@ struct match_condition {
 
         char* interface;
         struct content_rule_list* content_list;
-        struct time_rule_list* time_list; 
-    
+        struct time_rule_list* time_list;
     };
 };
 
 struct rule_list_node {
-    struct list_head list;                
-    struct match_condition *conditions; 
-    uint32_t condition_count;               
-    uint64_t rule_bitmap;      
+    struct list_head list;
+    struct match_condition* conditions;
+    uint32_t condition_count;
+    uint32_t rule_id;
+    uint64_t rule_bitmap;
+    
 };
 
 enum rule_list_type {
@@ -48,18 +48,23 @@ enum rule_list_type {
 };
 
 struct rule_list {
-    enum rule_list_type type;   // 白名单/黑名单
-    struct list_head nodes;     // 链表头
+    enum rule_list_type type;  // 白名单/黑名单
+    struct list_head nodes;    // 链表头
 };
 
-extern struct rule_list *black_list_singleton;
-extern struct rule_list *white_list_singleton;
+extern struct rule_list* black_list_singleton;
+extern struct rule_list* white_list_singleton;
+extern bool BLACK_LIST_ENABLE;
+extern struct mutex black_list_lock;
+extern struct mutex white_list_lock;
+extern struct mutex rule_id_lock;
 
-struct rule_list *get_rule_list(enum rule_list_type type);
+extern uint32_t rule_id;
 
-void release_rule_list(struct rule_list *list);
+struct rule_list* get_rule_list(enum rule_list_type type);
 
-uint64_t compute_bitmap(uint32_t size,
-                        struct match_condition *conditions);
+void release_rule_list(struct rule_list* list);
+
+uint64_t compute_bitmap(uint32_t size, struct match_condition* conditions);
 
 #endif /* _RULE_H */

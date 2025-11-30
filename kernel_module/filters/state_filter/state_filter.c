@@ -1,6 +1,5 @@
 #include "state_filter.h"
 
-
 static int check_tcp_state(struct sk_buff* skb);
 /**
  * 状态过滤Netfilter钩子函数
@@ -14,25 +13,44 @@ unsigned int state_filter_hook(void* priv,
         return NF_DROP;
     }
 
-    struct rule_list* black_list = get_rule_list(RULE_LIST_BLACK);
-    struct rule_list_node* mov;
-    // 黑名单过滤
-
-    list_for_each_entry(mov, &black_list->nodes, list) {
-        if (mov->rule_bitmap & RULE_STATE_POLICY_DENY_ALL_NEW) {
-            for (uint32_t i = 0; i < mov->condition_count; i++) {
-                if (mov->conditions[i].match_type ==
-                    RULE_STATE_POLICY_DENY_ALL_NEW) {
-                    if (!check_tcp_state(skb)) {
-                        SKB_RULE_BITMAP(skb) |= RULE_STATE_POLICY_DENY_ALL_NEW;
+    if (ENABLE_BLACK_LIST(skb)) {
+        struct rule_list* black_list = get_rule_list(RULE_LIST_BLACK);
+        struct rule_list_node* mov;
+        list_for_each_entry(mov, &black_list->nodes, list) {
+            if (mov->rule_bitmap & RULE_STATE_POLICY_DENY_ALL_NEW) {
+                for (uint32_t i = 0; i < mov->condition_count; i++) {
+                    if (mov->conditions[i].match_type ==
+                        RULE_STATE_POLICY_DENY_ALL_NEW) {
+                        if (!check_tcp_state(skb)) {
+                            SKB_RULE_BITMAP(skb) |=
+                                RULE_STATE_POLICY_DENY_ALL_NEW;
+                        }
+                    }
+                }
+            }
+            if (mov->rule_bitmap == SKB_RULE_BITMAP(skb)) {
+                return NF_DROP;
+            }
+        }
+    } else {
+        struct rule_list* white_list = get_rule_list(RULE_LIST_WHITE);
+        struct rule_list_node* mov;
+        list_for_each_entry(mov, &white_list->nodes, list) {
+            if (mov->rule_bitmap & RULE_STATE_POLICY_DENY_ALL_NEW) {
+                for (uint32_t i = 0; i < mov->condition_count; i++) {
+                    if (mov->conditions[i].match_type ==
+                        RULE_STATE_POLICY_DENY_ALL_NEW) {
+                        if (check_tcp_state(skb)) {
+                            SKB_RULE_BITMAP(skb) |=
+                                RULE_STATE_POLICY_DENY_ALL_NEW;
+                        }
                     }
                 }
             }
         }
-        if (mov->rule_bitmap == SKB_RULE_BITMAP(skb)) {
-            return NF_DROP;
-        }
     }
+
+    // 黑名单过滤
 
     return NF_ACCEPT;
 }

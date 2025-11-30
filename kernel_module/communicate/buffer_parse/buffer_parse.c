@@ -25,8 +25,14 @@ void parse_buffer(const char* msg_buffer_start_ptr) {
 
     node->condition_count = entry->condition_count;
     node->rule_bitmap = entry->bitmap;
-    size_t union_size = sizeof(struct match_condition) -
-                        offsetof(struct match_condition, src_ip);
+
+    mutex_lock(&rule_id_lock);
+    node->rule_id = rule_id++;
+    mutex_unlock(&rule_id_lock);
+    // size_t union_size = sizeof(struct match_condition) -
+    //                     offsetof(struct match_condition, src_ip);
+
+    
 
     for (uint32_t i = 0; i < entry->condition_count; i++) {
         // 排除需要额外读取buffer的情况
@@ -148,6 +154,13 @@ void parse_buffer(const char* msg_buffer_start_ptr) {
         }
     }
 
-    // 黑名单
-    list_add(&node->list, &get_rule_list(RULE_LIST_BLACK)->nodes);
+    if (node->rule_bitmap & RULE_BLACK) {
+        mutex_lock(&black_list_lock);
+        list_add(&node->list, &get_rule_list(RULE_LIST_BLACK)->nodes);
+        mutex_unlock(&black_list_lock);
+    } else {
+        mutex_lock(&white_list_lock);
+        list_add(&node->list, &get_rule_list(RULE_LIST_WHITE)->nodes);
+        mutex_unlock(&white_list_lock);
+    }
 };

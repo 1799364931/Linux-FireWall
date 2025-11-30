@@ -23,6 +23,7 @@ MODULE_DESCRIPTION("Simple Firewall Module");
 MODULE_VERSION("1.0");
 
 static struct nf_hook_ops hook_ops_array[] = {
+    // 最先流入的HOOK
     {
         .hook = ip_filter_hook,
         .pf = PF_INET,
@@ -65,11 +66,12 @@ static struct nf_hook_ops hook_ops_array[] = {
         .hooknum = NF_INET_LOCAL_IN,
         .priority = NF_IP_PRI_CONNTRACK_DEFRAG,
     },
+    // 最后流入的HOOK
     {
         .hook = interface_filter_hook,
         .pf = PF_INET,
         .hooknum = NF_INET_LOCAL_IN,
-        .priority = NF_IP_PRI_CONNTRACK_DEFRAG,
+        .priority = NF_IP_PRI_LAST,
     }
 
 };
@@ -104,9 +106,13 @@ static void __exit firewall_exit(void) {
         nf_unregister_net_hook(&init_net, &hook_ops_array[i]);
     }
     genl_unregister_family(&my_family);
-    release_rule_list(get_rule_list(RULE_LIST_WHITE));
+    mutex_lock(&black_list_lock);
     release_rule_list(get_rule_list(RULE_LIST_BLACK));
+    mutex_unlock(&black_list_lock);
 
+    mutex_lock(&white_list_lock);
+    release_rule_list(get_rule_list(RULE_LIST_WHITE));
+    mutex_unlock(&white_list_lock);
     printk(KERN_INFO "Firewall module: Unloaded\n");
 }
 

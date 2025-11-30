@@ -9,11 +9,12 @@
 #include "../buffer_parse/buffer_parse.h"
 
 int handle_recv_add_rule_msg(struct sk_buff* skb, struct genl_info* info);
-
+int handle_recv_mode_change_msg(struct sk_buff* skb, struct genl_info* info);
 /// ---------- 定义命令号和属性号 ----------
 enum {
     CMD_UNSPEC,
     CMD_ADD_RULE,  // 用户态要调用的命令
+    CMD_CHANGE_MOD,
 };
 
 enum {
