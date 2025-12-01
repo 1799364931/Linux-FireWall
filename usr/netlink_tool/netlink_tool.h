@@ -1,5 +1,6 @@
 #include <libnl3/netlink/genl/ctrl.h>
 #include <libnl3/netlink/genl/genl.h>
+#include <libnl3/netlink/msg.h>
 #include <netlink/netlink.h>
 #include <cstdint>
 #include <cstring>
@@ -9,9 +10,7 @@ class netlink_tool {
    public:
     // 构造函数只需要 family_name
     netlink_tool(const std::string& family_name)
-        : family_name_(family_name),
-          sock_(nullptr),
-          family_id_(-1) {}
+        : family_name_(family_name), sock_(nullptr), family_id_(-1) {}
 
     ~netlink_tool() {
         if (sock_)
@@ -21,6 +20,8 @@ class netlink_tool {
     // 初始化 Netlink socket 并解析 family id
     bool init() {
         sock_ = nl_socket_alloc();
+        nl_socket_modify_cb(sock_, NL_CB_MSG_IN, NL_CB_CUSTOM, recv_notify,
+                            nullptr);
         if (!sock_) {
             std::cerr << "nl_socket_alloc failed\n";
             return false;
@@ -38,7 +39,10 @@ class netlink_tool {
     }
 
     // 发送 buffer，cmd 和 attr 作为参数传入
-    bool send_buffer(const char* startpos, uint32_t bufferlen, int cmd, int attr) {
+    bool send_buffer(const char* startpos,
+                     uint32_t bufferlen,
+                     int cmd,
+                     int attr) {
         if (!sock_ || family_id_ < 0)
             return false;
 
@@ -48,7 +52,8 @@ class netlink_tool {
             return false;
         }
 
-        if (!genlmsg_put(msg, NL_AUTO_PORT, NL_AUTO_SEQ, family_id_, 0, 0, cmd, 1)) {
+        if (!genlmsg_put(msg, NL_AUTO_PORT, NL_AUTO_SEQ, family_id_, 0, 0, cmd,
+                         1)) {
             std::cerr << "genlmsg_put failed\n";
             nlmsg_free(msg);
             return false;
@@ -70,7 +75,36 @@ class netlink_tool {
         return true;
     }
 
+    static int recv_notify(struct nl_msg* msg, void* arg) {
+        struct nlmsghdr* nlh = nlmsg_hdr(msg);
+        struct genlmsghdr* gnlh = (genlmsghdr*)nlmsg_data(nlh);
+        struct nlattr* attrs[__ATTR_MAX + 1];
+
+        // 解析属性
+        genlmsg_parse(nlh, 0, attrs, __ATTR_MAX, nullptr);
+        if (attrs[ATTR_BUF]) {
+            const char* buf = (const char*)nla_data(attrs[ATTR_BUF]);
+            int len = nla_len(attrs[ATTR_BUF]);
+            std::cout << "Kernel notify: " << std::string(buf, len)
+                      << std::endl;
+        }
+        return NL_OK;
+    }
+
    private:
+    enum {
+        CMD_UNSPEC,
+        CMD_ADD_RULE,  // 用户态要调用的命令
+        CMD_CHANGE_MOD,
+        CMD_LIST_RULE,
+    };
+
+    enum {
+        ATTR_UNSPEC,
+        ATTR_BUF,  // 用户态传递的缓冲区
+        __ATTR_MAX,
+    };
+    
     std::string family_name_;  // Netlink family 名称
     struct nl_sock* sock_;     // Netlink socket
     int family_id_;            // family id（通过名字解析得到）

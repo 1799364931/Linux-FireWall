@@ -14,7 +14,9 @@ int handle_recv_mode_change_msg(struct sk_buff* skb, struct genl_info* info);
 enum {
     CMD_UNSPEC,
     CMD_ADD_RULE,  // 用户态要调用的命令
-    CMD_CHANGE_MOD,
+    CMD_CHANGE_MOD, 
+    CMD_LIST_RULE_CTRL,
+    CMD_LIST_RULE
 };
 
 enum {
@@ -22,6 +24,7 @@ enum {
     ATTR_BUF,  // 用户态传递的缓冲区
     __ATTR_MAX,
 };
+
 #define MY_ATTR_MAX (__MY_ATTR_MAX - 1)
 
 /// ---------- 属性解析策略 ----------

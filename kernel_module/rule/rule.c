@@ -35,6 +35,7 @@ struct rule_list* get_rule_list(enum rule_list_type type) {
             return NULL;
 
         (*target)->type = type;
+        (*target)->rule_count = 0;
         INIT_LIST_HEAD(&(*target)->nodes);
     }
 

@@ -32,9 +32,7 @@ void parse_buffer(const char* msg_buffer_start_ptr) {
     // size_t union_size = sizeof(struct match_condition) -
     //                     offsetof(struct match_condition, src_ip);
 
-    
-
-    for (uint32_t i = 0; i < entry->condition_count; i++) {
+        for (uint32_t i = 0; i < entry->condition_count; i++) {
         // 排除需要额外读取buffer的情况
         node->conditions[i].match_type = entry->conditions[i].match_type;
         switch (node->conditions[i].match_type) {
@@ -154,13 +152,148 @@ void parse_buffer(const char* msg_buffer_start_ptr) {
         }
     }
 
+    //* 这里考虑拆分一下逻辑 不要在序列化里面做添加节点的操作
     if (node->rule_bitmap & RULE_BLACK) {
         mutex_lock(&black_list_lock);
         list_add(&node->list, &get_rule_list(RULE_LIST_BLACK)->nodes);
+        get_rule_list(RULE_LIST_BLACK)->rule_count++;
         mutex_unlock(&black_list_lock);
     } else {
         mutex_lock(&white_list_lock);
         list_add(&node->list, &get_rule_list(RULE_LIST_WHITE)->nodes);
+        get_rule_list(RULE_LIST_WHITE)->rule_count++;
         mutex_unlock(&white_list_lock);
     }
 };
+
+// 返回有多少个rule
+uint32_t build_rule_list_msg(char* target_buffer_ptr,
+                             enum rule_list_type type) {
+    struct rule_list* list = get_rule_list(type);
+    struct rule_list_node *pos, *n;
+    uint32_t j = 0;
+    target_buffer_ptr = kzalloc(RULE_MSG_SIZE * list->rule_count, GFP_KERNEL);
+    if (!target_buffer_ptr) {
+        return 0;
+    }
+
+    list_for_each_entry_safe(pos, n, &list->nodes, list) {
+        char* ptr = target_buffer_ptr + j * RULE_MSG_SIZE;
+        j++;
+
+        int written = scnprintf(ptr, RULE_MSG_SIZE, "Rule %u: ", pos->rule_id);
+        for (uint32_t i = 0; i < pos->condition_count; i++) {
+            switch (pos->conditions[i].match_type) {
+                case RULE_SRC_IP: {
+                    written +=
+                        scnprintf(ptr + written, RULE_MSG_SIZE - written,
+                                  "src_ip=%pI4 ", &pos->conditions[i].src_ip);
+                    break;
+                }
+                case RULE_SRC_IP_MASK: {
+                    written += scnprintf(ptr + written, RULE_MSG_SIZE - written,
+                                         "src_ip_mask=%pI4 ",
+                                         &pos->conditions[i].src_mask_ip);
+                    break;
+                }
+                case RULE_DST_IP: {
+                    written +=
+                        scnprintf(ptr + written, RULE_MSG_SIZE - written,
+                                  "dst_ip=%pI4 ", &pos->conditions[i].dst_ip);
+                    break;
+                }
+                case RULE_DST_IP_MASK: {
+                    written += scnprintf(ptr + written, RULE_MSG_SIZE - written,
+                                         "dst_ip_mask=%pI4 ",
+                                         &pos->conditions[i].dst_mask_ip);
+                    break;
+                }
+                case RULE_SRC_PORT: {
+                    written += scnprintf(ptr + written, RULE_MSG_SIZE - written,
+                                         "src_port=%u ",
+                                         ntohs(pos->conditions[i].src_port));
+                    break;
+                }
+                case RULE_DST_PORT: {
+                    written += scnprintf(ptr + written, RULE_MSG_SIZE - written,
+                                         "dst_port=%u ",
+                                         ntohs(pos->conditions[i].dst_port));
+                    break;
+                }
+                case RULE_SRC_MAC: {
+                    written +=
+                        scnprintf(ptr + written, RULE_MSG_SIZE - written,
+                                  "src_mac=%pM ", pos->conditions[i].src_mac);
+                    break;
+                }
+                case RULE_DST_MAC: {
+                    written +=
+                        scnprintf(ptr + written, RULE_MSG_SIZE - written,
+                                  "dst_mac=%pM ", pos->conditions[i].dst_mac);
+                    break;
+                }
+                case RULE_IPV4_PROTOCOL: {
+                    written +=
+                        scnprintf(ptr + written, RULE_MSG_SIZE - written,
+                                  "dst_mac=%u ", pos->conditions[i].dst_port);
+                    break;
+                }
+                case RULE_CONTENT: {
+                    struct content_rule *rule, *tmp;
+                    written += scnprintf(ptr + written, RULE_MSG_SIZE - written,
+                                         "contents= ");
+                    list_for_each_entry_safe(
+                        rule, tmp, &pos->conditions[i].content_list->head,
+                        list) {
+                        written +=
+                            scnprintf(ptr + written, RULE_MSG_SIZE - written,
+                                      "%s ", rule->target_str);
+                    }
+                    break;
+                }
+                case RULE_TIME_DROP: {
+                    struct time_rule *rule, *tmp;
+                    written += scnprintf(ptr + written, RULE_MSG_SIZE - written,
+                                         "time_drop= ");
+
+                    list_for_each_entry_safe(
+                        rule, tmp, &pos->conditions[i].time_list->head, list) {
+                        scnprintf(ptr + written, RULE_MSG_SIZE - written,
+                                  "%u:%u - %u:%u ", rule->start_hour,
+                                  rule->start_min, rule->end_hour,
+                                  rule->end_min);
+                    }
+
+                    break;
+                }
+                case RULE_TIME_ACCEPT: {
+                    struct time_rule *rule, *tmp;
+                    written += scnprintf(ptr + written, RULE_MSG_SIZE - written,
+                                         "time_accept= ");
+
+                    list_for_each_entry_safe(
+                        rule, tmp, &pos->conditions[i].time_list->head, list) {
+                        scnprintf(ptr + written, RULE_MSG_SIZE - written,
+                                  "%u:%u - %u:%u ", rule->start_hour,
+                                  rule->start_min, rule->end_hour,
+                                  rule->end_min);
+                    }
+
+                    break;
+                }
+                case RULE_STATE_POLICY_DENY_ALL_NEW: {
+                    written += scnprintf(ptr + written, RULE_MSG_SIZE - written,
+                                         "state-filte=true");
+                    break;
+                }
+                case RULE_INTERFACE: {
+                    written +=
+                        scnprintf(ptr + written, RULE_MSG_SIZE - written,
+                                  "dst_mac=%s ", pos->conditions[i].interface);
+                    break;
+                }
+            }
+        }
+    }
+    return j;
+}

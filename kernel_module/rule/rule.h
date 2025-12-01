@@ -49,6 +49,7 @@ enum rule_list_type {
 
 struct rule_list {
     enum rule_list_type type;  // 白名单/黑名单
+    uint32_t rule_count;
     struct list_head nodes;    // 链表头
 };
 
