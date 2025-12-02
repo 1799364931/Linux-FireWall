@@ -53,8 +53,8 @@ int handle_recv_list_rule_msg(struct sk_buff* skb, struct genl_info* info) {
     char *msg_buffer_black, *msg_buffer_white;
     int black_len = build_rule_list_msg(&msg_buffer_black, RULE_LIST_BLACK);
     int white_len = build_rule_list_msg(&msg_buffer_white, RULE_LIST_WHITE);
-    int ret = send_rule_list_to_user(msg_buffer_black, black_len, msg_buffer_white,
-                                 white_len, info);
+    int ret = send_rule_list_to_user(msg_buffer_black, black_len,
+                                     msg_buffer_white, white_len, info);
 
     if (ret == 0)
         pr_info("netlink: message sent successfully\n");
@@ -117,6 +117,12 @@ const struct genl_ops my_ops[] = {
         .flags = 0,
         .policy = my_policy,
         .doit = handle_recv_mode_change_msg,
+    },
+    {
+        .cmd = CMD_LIST_RULE_CTRL,
+        .flags = 0,
+        .policy = my_policy,
+        .doit = handle_recv_list_rule_msg,
     }};
 
 struct genl_family my_family = {

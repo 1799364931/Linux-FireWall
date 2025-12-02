@@ -44,8 +44,10 @@ void cmd_parser::build_parser() {
         false);
     parser_.add<std::string>("interface", 0, "interface", false);
 
-      parser_.add<std::string>("mode", 0, "mode", false);
-
+    parser_.add<std::string>("mode", 0, "mode", false);
+    parser_.add("add", 0, "add");
+    parser_.add("del", 0, "del");
+    parser_.add("list", 0, "list");
     parser_.add("drop", 0, "add black list rule");
     parser_.add("accept", 0, "add white list rule");
 }
@@ -221,7 +223,6 @@ bool cmd_parser::parse_args(uint32_t argc) {
     if (parser_.exist("src-ip")) {
         auto ip = ip_parse(parser_.get<std::string>("src-ip"));
         if (ip.has_value()) {
-
             entry_->conditions[entry_->condition_count].src_ip = ip.value();
 
             entry_->conditions[entry_->condition_count].match_type =

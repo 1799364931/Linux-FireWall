@@ -32,7 +32,7 @@ unsigned int ip_filter_hook(void* priv,
                
                 switch (mov->conditions[i].match_type) {
                     case RULE_SRC_IP: {
-                        printk(KERN_INFO "src=%pI4 dst=%pI4\n",mov->conditions[i].src_ip,iph->saddr);
+                        // printk(KERN_INFO "src=%pI4 dst=%pI4\n",mov->conditions[i].src_ip,iph->saddr);
                         if (iph->saddr == mov->conditions[i].src_ip) {
                             SKB_RULE_BITMAP(skb) |= RULE_SRC_IP;
                             printk(KERN_INFO "yes");

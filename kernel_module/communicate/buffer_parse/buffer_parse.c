@@ -32,7 +32,7 @@ void parse_buffer(const char* msg_buffer_start_ptr) {
     // size_t union_size = sizeof(struct match_condition) -
     //                     offsetof(struct match_condition, src_ip);
 
-        for (uint32_t i = 0; i < entry->condition_count; i++) {
+    for (uint32_t i = 0; i < entry->condition_count; i++) {
         // 排除需要额外读取buffer的情况
         node->conditions[i].match_type = entry->conditions[i].match_type;
         switch (node->conditions[i].match_type) {
@@ -178,7 +178,7 @@ uint32_t build_rule_list_msg(char** target_buffer_ptr,
     if (!startptr) {
         return 0;
     }
-    
+
     list_for_each_entry_safe(pos, n, &list->nodes, list) {
         char* ptr = startptr + j * RULE_MSG_SIZE + sizeof(uint32_t);
         j++;
@@ -296,7 +296,8 @@ uint32_t build_rule_list_msg(char** target_buffer_ptr,
                 }
             }
         }
+        written += scnprintf(ptr + written, RULE_MSG_SIZE - written, "\n");
     }
-    memcpy(startptr,&j,sizeof(uint32_t));
+    memcpy(startptr, &j, sizeof(uint32_t));
     return total_size;
 }
