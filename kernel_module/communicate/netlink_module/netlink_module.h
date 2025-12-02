@@ -10,11 +10,17 @@
 
 int handle_recv_add_rule_msg(struct sk_buff* skb, struct genl_info* info);
 int handle_recv_mode_change_msg(struct sk_buff* skb, struct genl_info* info);
+int handle_recv_list_rule_msg(struct sk_buff* skb, struct genl_info* info);
+int send_rule_list_to_user(const char* black_buf,
+                           int black_len,
+                           const char* white_buf,
+                           int white_len,
+                           struct genl_info* info);
 /// ---------- 定义命令号和属性号 ----------
 enum {
     CMD_UNSPEC,
     CMD_ADD_RULE,  // 用户态要调用的命令
-    CMD_CHANGE_MOD, 
+    CMD_CHANGE_MOD,
     CMD_LIST_RULE_CTRL,
     CMD_LIST_RULE
 };
@@ -22,6 +28,8 @@ enum {
 enum {
     ATTR_UNSPEC,
     ATTR_BUF,  // 用户态传递的缓冲区
+    ATTR_BLACK_LIST,
+    ATTR_WHITE_LIST,
     __ATTR_MAX,
 };
 

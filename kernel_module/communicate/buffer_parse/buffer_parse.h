@@ -14,6 +14,6 @@
 void parse_buffer(const char* msg_buffer_start_ptr);
 
 // 获取对应的信息
-uint32_t build_rule_list_msg(char* target_buffer_ptr,enum rule_list_type type);
+uint32_t build_rule_list_msg(char** target_buffer_ptr,enum rule_list_type type);
 
 #endif

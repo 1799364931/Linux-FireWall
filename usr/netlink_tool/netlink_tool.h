@@ -20,7 +20,8 @@ class netlink_tool {
     // 初始化 Netlink socket 并解析 family id
     bool init() {
         sock_ = nl_socket_alloc();
-        nl_socket_modify_cb(sock_, NL_CB_MSG_IN, NL_CB_CUSTOM, recv_notify,
+        // 绑定到“有效消息”阶段
+        nl_socket_modify_cb(sock_, NL_CB_VALID, NL_CB_CUSTOM, recv_rule_list,
                             nullptr);
         if (!sock_) {
             std::cerr << "nl_socket_alloc failed\n";
@@ -75,20 +76,44 @@ class netlink_tool {
         return true;
     }
 
-    static int recv_notify(struct nl_msg* msg, void* arg) {
+    static int recv_rule_list(struct nl_msg* msg, void* arg) {
         struct nlmsghdr* nlh = nlmsg_hdr(msg);
-        struct genlmsghdr* gnlh = (genlmsghdr*)nlmsg_data(nlh);
+        // struct genlmsghdr* gnlh = (genlmsghdr*)nlmsg_data(nlh);
         struct nlattr* attrs[__ATTR_MAX + 1];
 
         // 解析属性
         genlmsg_parse(nlh, 0, attrs, __ATTR_MAX, nullptr);
-        if (attrs[ATTR_BUF]) {
-            const char* buf = (const char*)nla_data(attrs[ATTR_BUF]);
-            int len = nla_len(attrs[ATTR_BUF]);
-            std::cout << "Kernel notify: " << std::string(buf, len)
+
+        // 黑名单属性
+        if (attrs[ATTR_BLACK_LIST]) {
+            const char* buf = (const char*)nla_data(attrs[ATTR_BLACK_LIST]);
+            int len = nla_len(attrs[ATTR_BLACK_LIST]);
+            std::cout << "Kernel notify (BLACK): " << std::string(buf, len)
                       << std::endl;
         }
+
+        // 白名单属性
+        if (attrs[ATTR_WHITE_LIST]) {
+            const char* buf = (const char*)nla_data(attrs[ATTR_WHITE_LIST]);
+            int len = nla_len(attrs[ATTR_WHITE_LIST]);
+            std::cout << "Kernel notify (WHITE): " << std::string(buf, len)
+                      << std::endl;
+        }
+
         return NL_OK;
+    }
+
+    bool recv_once() {
+        if (!sock_)
+            return false;
+
+        int err = nl_recvmsgs_default(sock_);
+        if (err < 0) {
+            std::cerr << "nl_recvmsgs_default failed: " << nl_geterror(err)
+                      << std::endl;
+            return false;
+        }
+        return true;
     }
 
    private:
@@ -96,15 +121,18 @@ class netlink_tool {
         CMD_UNSPEC,
         CMD_ADD_RULE,  // 用户态要调用的命令
         CMD_CHANGE_MOD,
-        CMD_LIST_RULE,
+        CMD_LIST_RULE_CTRL,
+        CMD_LIST_RULE
     };
 
     enum {
         ATTR_UNSPEC,
         ATTR_BUF,  // 用户态传递的缓冲区
+        ATTR_BLACK_LIST,
+        ATTR_WHITE_LIST,
         __ATTR_MAX,
     };
-    
+
     std::string family_name_;  // Netlink family 名称
     struct nl_sock* sock_;     // Netlink socket
     int family_id_;            // family id（通过名字解析得到）

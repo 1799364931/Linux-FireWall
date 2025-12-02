@@ -166,19 +166,21 @@ void parse_buffer(const char* msg_buffer_start_ptr) {
     }
 };
 
-// 返回有多少个rule
-uint32_t build_rule_list_msg(char* target_buffer_ptr,
+// 返回空间大小
+uint32_t build_rule_list_msg(char** target_buffer_ptr,
                              enum rule_list_type type) {
     struct rule_list* list = get_rule_list(type);
     struct rule_list_node *pos, *n;
     uint32_t j = 0;
-    target_buffer_ptr = kzalloc(RULE_MSG_SIZE * list->rule_count, GFP_KERNEL);
-    if (!target_buffer_ptr) {
+    uint32_t total_size = RULE_MSG_SIZE * list->rule_count + sizeof(uint32_t);
+    *target_buffer_ptr = kzalloc(total_size, GFP_KERNEL);
+    char* startptr = *target_buffer_ptr;
+    if (!startptr) {
         return 0;
     }
-
+    
     list_for_each_entry_safe(pos, n, &list->nodes, list) {
-        char* ptr = target_buffer_ptr + j * RULE_MSG_SIZE;
+        char* ptr = startptr + j * RULE_MSG_SIZE + sizeof(uint32_t);
         j++;
 
         int written = scnprintf(ptr, RULE_MSG_SIZE, "Rule %u: ", pos->rule_id);
@@ -295,5 +297,6 @@ uint32_t build_rule_list_msg(char* target_buffer_ptr,
             }
         }
     }
-    return j;
+    memcpy(startptr,&j,sizeof(uint32_t));
+    return total_size;
 }

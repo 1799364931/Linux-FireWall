@@ -43,57 +43,66 @@ int handle_recv_mode_change_msg(struct sk_buff* skb, struct genl_info* info) {
     return 0;
 }
 
-
 int handle_recv_list_rule_msg(struct sk_buff* skb, struct genl_info* info) {
     if (!info->attrs[ATTR_BUF]) {
         pr_err("netlink: missing buffer attribute\n");
         return -EINVAL;
     }
 
-    const void* buf = nla_data(info->attrs[ATTR_BUF]);
-    int len = nla_len(info->attrs[ATTR_BUF]);
-
-    pr_info("netlink: received buffer length=%d\n", len);
-
     // 回调
-    // 序列化
+    char *msg_buffer_black, *msg_buffer_white;
+    int black_len = build_rule_list_msg(&msg_buffer_black, RULE_LIST_BLACK);
+    int white_len = build_rule_list_msg(&msg_buffer_white, RULE_LIST_WHITE);
+    int ret = send_rule_list_to_user(msg_buffer_black, black_len, msg_buffer_white,
+                                 white_len, info);
 
-    // 传递
+    if (ret == 0)
+        pr_info("netlink: message sent successfully\n");
+    else
+        pr_err("netlink: send failed, err=%d\n", ret);
 
     return 0;
 }
 
-int send_notify_to_user(const char* msg, int len, struct genl_info* info) {
+int send_rule_list_to_user(const char* black_buf,
+                           int black_len,
+                           const char* white_buf,
+                           int white_len,
+                           struct genl_info* info) {
     struct sk_buff* skb;
     void* hdr;
 
-    // 分配一个 netlink 消息
     skb = genlmsg_new(NLMSG_GOODSIZE, GFP_KERNEL);
     if (!skb)
         return -ENOMEM;
 
-    // 填充 generic netlink header
-    hdr = genlmsg_put(skb, 0, 0, &my_family, 0, CMD_LIST_RULE);
+    hdr = genlmsg_put(skb, info->snd_portid, info->snd_seq, &my_family, 0,
+                      CMD_LIST_RULE);
     if (!hdr) {
         nlmsg_free(skb);
         return -ENOMEM;
     }
 
-    // 添加 payload
-    if (nla_put(skb, ATTR_BUF, len, msg)) {
+    // 放黑名单属性
+    if (nla_put(skb, ATTR_BLACK_LIST, black_len, black_buf)) {
+        nlmsg_free(skb);
+        return -EMSGSIZE;
+    }
+
+    // 放白名单属性
+    if (nla_put(skb, ATTR_WHITE_LIST, white_len, white_buf)) {
         nlmsg_free(skb);
         return -EMSGSIZE;
     }
 
     genlmsg_end(skb, hdr);
-
-    // 单播给请求的进程（info->snd_portid）
     return genlmsg_unicast(genl_info_net(info), skb, info->snd_portid);
 }
 
 const struct nla_policy my_policy[__ATTR_MAX + 1] = {
     [ATTR_BUF] = {.type = NLA_BINARY},  // 定义为二进制数据
-};
+    [ATTR_BLACK_LIST] = {.type = NLA_BINARY},
+    [ATTR_WHITE_LIST] = {.type = NLA_BINARY}};
 
 /// ---------- 命令表 ----------
 const struct genl_ops my_ops[] = {
