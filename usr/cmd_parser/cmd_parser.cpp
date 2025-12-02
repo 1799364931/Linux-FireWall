@@ -45,8 +45,9 @@ void cmd_parser::build_parser() {
     parser_.add<std::string>("interface", 0, "interface", false);
 
     parser_.add<std::string>("mode", 0, "mode", false);
+    parser_.add<std::string>("del", 0, "del", false);
     parser_.add("add", 0, "add");
-    parser_.add("del", 0, "del");
+
     parser_.add("list", 0, "list");
     parser_.add("drop", 0, "add black list rule");
     parser_.add("accept", 0, "add white list rule");
@@ -195,8 +196,6 @@ std::optional<std::vector<std::string>> cmd_parser::content_parse(
 }
 
 bool cmd_parser::parse_args(uint32_t argc) {
-    //
-
     // 构造结构体
 
     rule_entry_msg_size_ = sizeof(struct match_condition_msg) * argc +
@@ -512,4 +511,27 @@ bool cmd_parser::parse_args(uint32_t argc) {
         entry_->condition_count++;
     }
     return true;
+}
+
+std::optional<std::vector<uint32_t>> cmd_parser::del_ids_parse(
+    std::string del_str) {
+    auto del_id_strs = split_string(del_str, ' ');
+
+    if (del_id_strs.empty()) {
+        return std::nullopt;
+    }
+    std::vector<uint32_t> result;
+    result.push_back(del_id_strs.size());
+    for (auto& del_id_str : del_id_strs) {
+        try {
+            result.push_back(std::stoi(del_id_str));
+        } catch (const std::invalid_argument& e) {
+            std::cerr << "Invalid argument: " << e.what() << std::endl;
+            return std::nullopt;
+        } catch (const std::out_of_range& e) {
+            std::cerr << "Out of range: " << e.what() << std::endl;
+            return std::nullopt;
+        }
+    }
+    return result;
 }

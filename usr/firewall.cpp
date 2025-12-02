@@ -19,7 +19,7 @@ int main(int argc, char* argv[]) {
 
     if (parser.get_parser().exist("add")) {
         ret = parser.parse_args((argc - 3) / 2);
-        if(!ret){
+        if (!ret) {
             exit(0);
         }
         auto buffer_msg = parser.get_msg_buffer();
@@ -34,6 +34,22 @@ int main(int argc, char* argv[]) {
 
     } else if (parser.get_parser().exist("del")) {
         // 空着
+        auto del_ids =
+            parser.del_ids_parse(parser.get_parser().get<std::string>("del"));
+        if (!del_ids.has_value()) {
+            std::cout << "del id parse fail" << std::endl;
+            exit(0);
+        }
+        // 解析
+
+        ret = netlink_tool.send_buffer(
+            (char*)del_ids.value().data(),
+            del_ids.value().size() * sizeof(uint32_t), 5, 1);
+        if (!ret) {
+            std::cout << "netlink_tool send fail'\n'";
+            exit(0);
+        }
+
     } else if (parser.get_parser().exist("mode")) {
         auto mode = parser.get_parser().get<std::string>("mode");
         ret = netlink_tool.send_buffer(mode.data(), mode.length(), 2, 1);

@@ -43,6 +43,24 @@ int handle_recv_mode_change_msg(struct sk_buff* skb, struct genl_info* info) {
     return 0;
 }
 
+int handle_recv_del_rule_msg(struct sk_buff* skb, struct genl_info* info) {
+    if (!info->attrs[ATTR_BUF]) {
+        pr_err("netlink: missing buffer attribute\n");
+        return -EINVAL;
+    }
+
+    const void* buf = nla_data(info->attrs[ATTR_BUF]);
+    int len = nla_len(info->attrs[ATTR_BUF]);
+
+    pr_info("netlink: received buffer length=%d\n", len);
+
+    char mode = *((char*)buf);
+
+    del_parse_buffer(buf);
+
+    return 0;
+}
+
 int handle_recv_list_rule_msg(struct sk_buff* skb, struct genl_info* info) {
     if (!info->attrs[ATTR_BUF]) {
         pr_err("netlink: missing buffer attribute\n");
@@ -123,6 +141,12 @@ const struct genl_ops my_ops[] = {
         .flags = 0,
         .policy = my_policy,
         .doit = handle_recv_list_rule_msg,
+    },
+    {
+        .cmd = CMD_DEL_RULE,
+        .flags = 0,
+        .policy = my_policy,
+        .doit = handle_recv_del_rule_msg,
     }};
 
 struct genl_family my_family = {

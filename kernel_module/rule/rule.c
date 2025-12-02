@@ -42,34 +42,52 @@ struct rule_list* get_rule_list(enum rule_list_type type) {
     return *target;
 }
 
-void release_rule_list(struct rule_list* list) {
+void release_rule_list(struct rule_list* rule_list) {
     struct rule_list_node *pos, *n;
-    list_for_each_entry_safe(pos, n, &list->nodes, list) {
+    list_for_each_entry_safe(pos, n, &rule_list->nodes, list) {
         // todo 释放内存
         list_del(&pos->list);
-
         // pos -> match_type -> contents?
-        for (uint32_t i = 0; i < pos->condition_count; i++) {
-            switch (pos->conditions[i].match_type) {
-                case RULE_INTERFACE: {
-                    kfree(pos->conditions[i].interface);
-                    pos->conditions[i].interface = NULL;
-                    break;
-                }
-                case RULE_CONTENT: {
-                    cleanup_content_rules(pos->conditions[i].content_list);
-                    break;
-                }
-                case RULE_TIME_ACCEPT: {
-                    cleanup_time_rules(pos->conditions[i].time_list);
-                    break;
-                }
-                case RULE_TIME_DROP: {
-                    cleanup_time_rules(pos->conditions[i].time_list);
-                    break;
-                }
+        release_rule(pos);
+        kfree(pos);
+    }
+    kfree(rule_list);
+}
+
+bool del_rule(uint32_t del_rule_id, struct rule_list* rule_list) {
+    struct rule_list_node *pos, *n;
+    bool is_delete = false;
+    list_for_each_entry_safe(pos, n, &rule_list->nodes, list) {
+        if (pos->rule_id == del_rule_id) {
+            list_del(&pos->list);
+            release_rule(pos);
+            kfree(pos);
+            is_delete = true;
+        }
+    }
+    return is_delete;
+}
+
+void release_rule(struct rule_list_node* rule) {
+    for (uint32_t i = 0; i < rule->condition_count; i++) {
+        switch (rule->conditions[i].match_type) {
+            case RULE_INTERFACE: {
+                kfree(rule->conditions[i].interface);
+                rule->conditions[i].interface = NULL;
+                break;
+            }
+            case RULE_CONTENT: {
+                cleanup_content_rules(rule->conditions[i].content_list);
+                break;
+            }
+            case RULE_TIME_ACCEPT: {
+                cleanup_time_rules(rule->conditions[i].time_list);
+                break;
+            }
+            case RULE_TIME_DROP: {
+                cleanup_time_rules(rule->conditions[i].time_list);
+                break;
             }
         }
-        kfree(pos);
     }
 }

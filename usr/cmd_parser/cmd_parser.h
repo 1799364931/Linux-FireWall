@@ -31,6 +31,8 @@ class cmd_parser {
         return msg_buffer;
     };
 
+    std::optional<std::vector<uint32_t>> del_ids_parse(std::string del_str);
+
    private:
     static const std::unordered_map<std::string, uint16_t> protos_;
 

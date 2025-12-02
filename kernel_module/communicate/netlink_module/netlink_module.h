@@ -8,7 +8,10 @@
 #include <net/genetlink.h>
 #include "../buffer_parse/buffer_parse.h"
 
+
+// todo 考虑建立一个统一的回送字符串接口
 int handle_recv_add_rule_msg(struct sk_buff* skb, struct genl_info* info);
+int handle_recv_del_rule_msg(struct sk_buff* skb, struct genl_info* info);
 int handle_recv_mode_change_msg(struct sk_buff* skb, struct genl_info* info);
 int handle_recv_list_rule_msg(struct sk_buff* skb, struct genl_info* info);
 int send_rule_list_to_user(const char* black_buf,
@@ -22,7 +25,8 @@ enum {
     CMD_ADD_RULE,  // 用户态要调用的命令
     CMD_CHANGE_MOD,
     CMD_LIST_RULE_CTRL,
-    CMD_LIST_RULE
+    CMD_LIST_RULE,
+    CMD_DEL_RULE
 };
 
 enum {

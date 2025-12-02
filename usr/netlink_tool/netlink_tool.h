@@ -88,16 +88,16 @@ class netlink_tool {
         if (attrs[ATTR_BLACK_LIST]) {
             const char* buf = (const char*)nla_data(attrs[ATTR_BLACK_LIST]);
             int len = nla_len(attrs[ATTR_BLACK_LIST]);
-            std::cout << "Kernel notify (BLACK):\n" << std::string(buf, len)
-                      << std::endl;
+            std::cout << "Kernel notify (BLACK):\n"
+                      << std::string(buf, len) << std::endl;
         }
 
         // 白名单属性
         if (attrs[ATTR_WHITE_LIST]) {
             const char* buf = (const char*)nla_data(attrs[ATTR_WHITE_LIST]);
             int len = nla_len(attrs[ATTR_WHITE_LIST]);
-            std::cout << "Kernel notify (WHITE):\n" << std::string(buf, len)
-                      << std::endl;
+            std::cout << "Kernel notify (WHITE):\n"
+                      << std::string(buf, len) << std::endl;
         }
 
         return NL_OK;
@@ -106,7 +106,6 @@ class netlink_tool {
     bool recv_once() {
         if (!sock_)
             return false;
-
         int err = nl_recvmsgs_default(sock_);
         if (err < 0) {
             std::cerr << "nl_recvmsgs_default failed: " << nl_geterror(err)
@@ -118,11 +117,13 @@ class netlink_tool {
 
    private:
     enum {
+        //todo 考虑把这东西放入一个公共结构体
         CMD_UNSPEC,
         CMD_ADD_RULE,  // 用户态要调用的命令
         CMD_CHANGE_MOD,
         CMD_LIST_RULE_CTRL,
-        CMD_LIST_RULE
+        CMD_LIST_RULE,
+        CMD_DEL_RULE
     };
 
     enum {

@@ -237,7 +237,7 @@ uint32_t build_rule_list_msg(char** target_buffer_ptr,
                 case RULE_IPV4_PROTOCOL: {
                     written +=
                         scnprintf(ptr + written, RULE_MSG_SIZE - written,
-                                  "dst_mac=%u ", pos->conditions[i].dst_port);
+                                  "proto=%u ", pos->conditions[i].dst_port);
                     break;
                 }
                 case RULE_CONTENT: {
@@ -300,4 +300,23 @@ uint32_t build_rule_list_msg(char** target_buffer_ptr,
     }
     memcpy(startptr, &j, sizeof(uint32_t));
     return total_size;
+}
+
+void del_parse_buffer(const char* msg_buffer_start_ptr) {
+    // 解析buffer
+    uint32_t* ptr = (uint32_t*)msg_buffer_start_ptr;
+    uint32_t del_cnt = *((uint32_t*)ptr);
+    ptr += 1;
+
+    struct rule_list* black_list = get_rule_list(RULE_LIST_BLACK);
+    struct rule_list* white_list = get_rule_list(RULE_LIST_WHITE);
+    for (int i = 0; i < del_cnt; i++) {
+        uint32_t del_rule_id = *ptr;
+        if (del_rule(del_rule_id, black_list) ||
+            del_rule(del_rule_id, white_list)) {
+            // 删除成功
+
+            continue;
+        }
+    }
 }

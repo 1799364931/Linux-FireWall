@@ -68,4 +68,8 @@ void release_rule_list(struct rule_list* list);
 
 uint64_t compute_bitmap(uint32_t size, struct match_condition* conditions);
 
+void release_rule(struct rule_list_node* rule);
+
+bool del_rule(uint32_t del_rule_id, struct rule_list* rule_list);
+
 #endif /* _RULE_H */
