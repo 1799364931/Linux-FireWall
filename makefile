@@ -14,7 +14,7 @@ USR_SRCS := ./usr/firewall.cpp ./usr/cmd_parser/cmd_parser.cpp
 USR_OBJS := $(USR_SRCS:.cpp=.o)
 
 # 目标文件
-USR_TARGET := usr_app
+USR_TARGET := firewall
 
 .PHONY: all usr clean
 

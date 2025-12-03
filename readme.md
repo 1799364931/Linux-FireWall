@@ -79,14 +79,33 @@ firewallctl [命令] [选项1] [参数1] [选项2] [参数2]
 ``--list``参数用于列出当前已存在的防火墙规则。
 
 ```shell
-# 使用方式
 ./firewall --list
-
-# 返回结果
-
 ```
+![alt text](image.png)
 
+#### 1.2.3.3 --del
 
+`--del`参数接受一个`rule id`即`--list`返回的`Rule {rule id}`，以删除选中的规则。
+
+```shell
+./firewall --del 0
+```
+![alt text](image-1.png)
+
+#### 1.2.3.4 --mode
+`--mode` 参数接受一个字符以改变防火墙的名单过滤规则，切换黑/白名单过滤。
+
+```shell
+# 切换为白名单
+./firewall --mode w
+
+./firewall --mode W
+
+# 切换为黑名单
+./firewall --mode b
+
+./firewall --mode B
+```
  
 
 
