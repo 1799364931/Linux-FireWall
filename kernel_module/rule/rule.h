@@ -39,7 +39,6 @@ struct rule_list_node {
     uint32_t condition_count;
     uint32_t rule_id;
     uint64_t rule_bitmap;
-    
 };
 
 enum rule_list_type {
@@ -50,7 +49,7 @@ enum rule_list_type {
 struct rule_list {
     enum rule_list_type type;  // 白名单/黑名单
     uint32_t rule_count;
-    struct list_head nodes;    // 链表头
+    struct list_head nodes;  // 链表头
 };
 
 extern struct rule_list* black_list_singleton;

@@ -127,8 +127,8 @@ static int match_content(void* payload,
         // strnstr：在 payload 中查找 rule->target_str，最多查找
         // payload_len个字节
         if (strnstr((char*)payload, rule->target_str, payload_len)) {
-            printk(KERN_DEBUG "ContentWall: Matched target string: %s\n",
-                   rule->target_str);
+            // printk(KERN_DEBUG "ContentWall: Matched target string: %s\n",
+            //        rule->target_str);
             return 1;  // 命中任意一条规则即返回
         }
     }

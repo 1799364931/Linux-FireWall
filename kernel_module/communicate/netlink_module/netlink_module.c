@@ -54,8 +54,6 @@ int handle_recv_del_rule_msg(struct sk_buff* skb, struct genl_info* info) {
 
     pr_info("netlink: received buffer length=%d\n", len);
 
-    char mode = *((char*)buf);
-
     del_parse_buffer(buf);
 
     return 0;

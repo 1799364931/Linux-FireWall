@@ -45,9 +45,48 @@ firewallctl [命令] [选项1] [参数1] [选项2] [参数2]
 + `--est` 只允许建立连接的数据包通过
 + `--content "str1" "str2" "str3" ....` 过滤包含这些关键字的包
 + `--interface` 过滤对应的接口
-+ ` 
 + `--drop / --accept` 黑名单/白名单模式下有效
 + `--mode W/B w/b` 
+
+### 1.2.3 命令行实例
+
+#### 1.2.3.1 --add
+`--add`参数用于增加规则，其必须包含`--drop`或`--accept`参数来指明增加的规则是属于黑名单规则还是白名单规则，即对满足匹配规则的数据包进行丢弃还是接受。
+
+```shell
+# 过滤进入本机的，源IP地址为:123.123.123.123 目标端口为:80 的数据包
+./firewall --add --src-ip 123.123.123.123 --dst-port 80 --drop
+
+# 过滤进入本机的，源MAC地址为：00:0c:29:09:f2:b0 协议为：icmp 的数据包
+./firewall --add --src-mac  00:0c:29:09:f2:b0 --proto icmp --drop
+
+# 在12:00 - 14:00 时间段内丢弃所有源地址为：123.123.123.123 内容负载包含：abcd 或 efg 的数据包
+./firewall --add --time-drop "12:00 14:00" --src-ip 123.123.123.123 --content ""abcd" "efg"" --drop
+
+# 过滤所有非已建立连接的数据包
+./firewall --add --est 1 --drop
+
+# 只允许icmp协议数据包进入本机
+./firewall --add --proto icmp --accept
+
+# 只允许通过本机 ens12 网络接口，源地址IP网段属于123.123.0.0的数据包进入本机
+./firewall --add --src-ip-mask 123.123.0.0 --interface ens12 --accept
+
+```
+
+#### 1.2.3.2 --list
+
+``--list``参数用于列出当前已存在的防火墙规则。
+
+```shell
+# 使用方式
+./firewall --list
+
+# 返回结果
+
+```
+
+
  
 
 

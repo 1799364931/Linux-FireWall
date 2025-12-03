@@ -32,26 +32,23 @@ unsigned int interface_filter_hook(void* priv,
                 }
             }
         }
-        printk(KERN_INFO "look %lld,%lld", mov->rule_bitmap ,SKB_RULE_BITMAP(skb));
-        if (ENABLE_BLACK_LIST(skb) && mov->rule_bitmap == SKB_RULE_BITMAP(skb)) {
+        if (ENABLE_BLACK_LIST(skb) &&
+            mov->rule_bitmap == SKB_RULE_BITMAP(skb)) {
             return NF_DROP;
         }
         // 白名单不会打上 tag
         // 黑名单会打上 tag
         // SKB_RULE_BITMAP(skb) 白名单/黑名单
         // mov->rule_bitmap 标记了黑名单
-        if (!ENABLE_BLACK_LIST(skb) && mov->rule_bitmap == SKB_RULE_BITMAP(skb)) {
-            printk(KERN_INFO "accept!!!");
+        if (!ENABLE_BLACK_LIST(skb) &&
+            mov->rule_bitmap == SKB_RULE_BITMAP(skb)) {
             return NF_ACCEPT;
-            
         }
     }
 
-    if(ENABLE_BLACK_LIST(skb)){
+    if (ENABLE_BLACK_LIST(skb)) {
         return NF_ACCEPT;
-    }
-    else{
+    } else {
         return NF_DROP;
     }
-
 }

@@ -382,13 +382,19 @@ bool cmd_parser::parse_args(uint32_t argc) {
         // [字符串个数|4字节][字符串1长度][字符串1][字符串2长度][字符串2].....
         //
         // 序列化
+        
         if (contents.has_value()) {
-            uint32_t total_size = sizeof(uint32_t) + contents.value().size();
+            for(auto &s:contents.value()){
+                std::cout<<s<<'\n';
+            }
+            uint32_t total_size = sizeof(uint32_t);
             for (auto& str : contents.value()) {
                 total_size += str.length() + sizeof(uint32_t);
             }
             buffer_.resize(total_size);
-            auto ptr = buffer_.data();
+            
+            auto ptr = buffer_.data() + buffer_offset_;
+            
             int len = static_cast<int>(contents.value().size());
             std::memcpy(ptr, &len, sizeof(len));
             ptr += sizeof(int);
@@ -406,6 +412,8 @@ bool cmd_parser::parse_args(uint32_t argc) {
                 RULE_CONTENT;
             entry_->bitmap |= RULE_CONTENT;
             entry_->condition_count++;
+            buffer_offset_ += total_size;
+            
         } else {
             std::cout << "arg content parse fail" << std::endl;
 

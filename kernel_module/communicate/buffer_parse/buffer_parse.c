@@ -55,11 +55,9 @@ void parse_buffer(const char* msg_buffer_start_ptr) {
                 char* buffer_data_mov_ptr = buffer_data_ptr +
                                             entry->conditions[i].buffer_offset +
                                             sizeof(uint32_t);
-
-                printk(KERN_INFO "cnts is %d", strs_cnt);
+                printk(KERN_INFO "strs_cnt:%d", strs_cnt);
 
                 for (uint32_t j = 0; j < strs_cnt; j++) {
-                    printk(KERN_INFO "test!");
                     struct content_rule* rule =
                         kmalloc(sizeof(*rule), GFP_KERNEL);
                     uint32_t str_len = *buffer_data_mov_ptr;
@@ -249,7 +247,7 @@ uint32_t build_rule_list_msg(char** target_buffer_ptr,
                         list) {
                         written +=
                             scnprintf(ptr + written, RULE_MSG_SIZE - written,
-                                      "%s ", rule->target_str);
+                                      "|%s| ", rule->target_str);
                     }
                     break;
                 }
@@ -260,10 +258,10 @@ uint32_t build_rule_list_msg(char** target_buffer_ptr,
 
                     list_for_each_entry_safe(
                         rule, tmp, &pos->conditions[i].time_list->head, list) {
-                        scnprintf(ptr + written, RULE_MSG_SIZE - written,
-                                  "%u:%u - %u:%u ", rule->start_hour,
-                                  rule->start_min, rule->end_hour,
-                                  rule->end_min);
+                        written += scnprintf(
+                            ptr + written, RULE_MSG_SIZE - written,
+                            "|%02u:%02u-%02u:%02u| ", rule->start_hour, rule->start_min,
+                            rule->end_hour, rule->end_min);
                     }
 
                     break;
@@ -275,10 +273,10 @@ uint32_t build_rule_list_msg(char** target_buffer_ptr,
 
                     list_for_each_entry_safe(
                         rule, tmp, &pos->conditions[i].time_list->head, list) {
-                        scnprintf(ptr + written, RULE_MSG_SIZE - written,
-                                  "%u:%u - %u:%u ", rule->start_hour,
-                                  rule->start_min, rule->end_hour,
-                                  rule->end_min);
+                        written += scnprintf(
+                            ptr + written, RULE_MSG_SIZE - written,
+                            "|%02u:%02u-%02u:%02u| ", rule->start_hour, rule->start_min,
+                            rule->end_hour, rule->end_min);
                     }
 
                     break;
