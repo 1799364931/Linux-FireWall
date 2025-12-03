@@ -81,16 +81,17 @@ firewallctl [命令] [选项1] [参数1] [选项2] [参数2]
 ```shell
 ./firewall --list
 ```
-![alt text](image.png)
+![alt text](docs/pics/image.png)
 
 #### 1.2.3.3 --del
 
 `--del`参数接受一个`rule id`即`--list`返回的`Rule {rule id}`，以删除选中的规则。
 
 ```shell
+# 删除Rule 0规则 ，见上图
 ./firewall --del 0
 ```
-![alt text](image-1.png)
+![alt text](docs/pics/image-1.png)
 
 #### 1.2.3.4 --mode
 `--mode` 参数接受一个字符以改变防火墙的名单过滤规则，切换黑/白名单过滤。
