@@ -10,12 +10,14 @@ int handle_recv_add_rule_msg(struct sk_buff* skb, struct genl_info* info) {
     }
 
     const void* buf = nla_data(info->attrs[ATTR_BUF]);
-    int len = nla_len(info->attrs[ATTR_BUF]);
-
-    pr_info("netlink: received buffer length=%d\n", len);
-
     parse_buffer(buf);
 
+    char* reply_msg = kmalloc(REPLY_MSG_SIZE, GFP_KERNEL);
+    sprintf(reply_msg, "add rule success");
+
+    send_msg_to_user(reply_msg, REPLY_MSG_SIZE, info, CMD_ADD_RULE_REPLY);
+
+    kfree(reply_msg);
     return 0;
 }
 
@@ -26,20 +28,24 @@ int handle_recv_mode_change_msg(struct sk_buff* skb, struct genl_info* info) {
     }
 
     const void* buf = nla_data(info->attrs[ATTR_BUF]);
-    int len = nla_len(info->attrs[ATTR_BUF]);
-
-    pr_info("netlink: received buffer length=%d\n", len);
 
     char mode = *((char*)buf);
 
+    char* reply_msg = kmalloc(REPLY_MSG_SIZE, GFP_KERNEL);
+
     if (mode == 'w' || mode == 'W') {
-        printk(KERN_INFO "change to while list mode");
         BLACK_LIST_ENABLE = false;
+        sprintf(reply_msg, "change to while list mode success");
     } else if (mode == 'b' || mode == 'B') {
         printk(KERN_INFO "change to black list mode");
-        BLACK_LIST_ENABLE = true;
+        sprintf(reply_msg, "change to while list mode success");
+    } else {
+        sprintf(reply_msg, "change to while list mode fail,unexcept arg");
     }
 
+    send_msg_to_user(reply_msg, REPLY_MSG_SIZE, info, CMD_CHANGE_MOD_REPLY);
+
+    kfree(reply_msg);
     return 0;
 }
 
@@ -50,12 +56,15 @@ int handle_recv_del_rule_msg(struct sk_buff* skb, struct genl_info* info) {
     }
 
     const void* buf = nla_data(info->attrs[ATTR_BUF]);
-    int len = nla_len(info->attrs[ATTR_BUF]);
-
-    pr_info("netlink: received buffer length=%d\n", len);
-
     del_parse_buffer(buf);
 
+    char* reply_msg = kmalloc(REPLY_MSG_SIZE, GFP_KERNEL);
+
+    sprintf(reply_msg, "del rule success");
+
+    send_msg_to_user(reply_msg, REPLY_MSG_SIZE, info, CMD_DEL_RULE_REPLY);
+
+    kfree(reply_msg);
     return 0;
 }
 
@@ -69,13 +78,11 @@ int handle_recv_list_rule_msg(struct sk_buff* skb, struct genl_info* info) {
     char *msg_buffer_black, *msg_buffer_white;
     int black_len = build_rule_list_msg(&msg_buffer_black, RULE_LIST_BLACK);
     int white_len = build_rule_list_msg(&msg_buffer_white, RULE_LIST_WHITE);
-    int ret = send_rule_list_to_user(msg_buffer_black, black_len,
-                                     msg_buffer_white, white_len, info);
+    send_rule_list_to_user(msg_buffer_black, black_len, msg_buffer_white,
+                           white_len, info);
 
-    if (ret == 0)
-        pr_info("netlink: message sent successfully\n");
-    else
-        pr_err("netlink: send failed, err=%d\n", ret);
+    kfree(msg_buffer_black);
+    kfree(msg_buffer_white);
 
     return 0;
 }
@@ -93,7 +100,7 @@ int send_rule_list_to_user(const char* black_buf,
         return -ENOMEM;
 
     hdr = genlmsg_put(skb, info->snd_portid, info->snd_seq, &my_family, 0,
-                      CMD_LIST_RULE);
+                      CMD_LIST_RULE_REPLY);
     if (!hdr) {
         nlmsg_free(skb);
         return -ENOMEM;
@@ -112,6 +119,35 @@ int send_rule_list_to_user(const char* black_buf,
     }
 
     genlmsg_end(skb, hdr);
+
+    return genlmsg_unicast(genl_info_net(info), skb, info->snd_portid);
+}
+
+int send_msg_to_user(const char* msg_buf,
+                      int msg_len,
+                      struct genl_info* info,
+                      int cmd) {
+    struct sk_buff* skb;
+    void* hdr;
+
+    skb = genlmsg_new(NLMSG_GOODSIZE, GFP_KERNEL);
+    if (!skb)
+        return -ENOMEM;
+
+    hdr = genlmsg_put(skb, info->snd_portid, info->snd_seq, &my_family, 0, cmd);
+
+    if (!hdr) {
+        nlmsg_free(skb);
+        return -ENOMEM;
+    }
+
+    if (nla_put(skb, ATTR_BUF, msg_len, msg_buf)) {
+        nlmsg_free(skb);
+        return -EMSGSIZE;
+    }
+
+    genlmsg_end(skb, hdr);
+
     return genlmsg_unicast(genl_info_net(info), skb, info->snd_portid);
 }
 
@@ -135,7 +171,7 @@ const struct genl_ops my_ops[] = {
         .doit = handle_recv_mode_change_msg,
     },
     {
-        .cmd = CMD_LIST_RULE_CTRL,
+        .cmd = CMD_LIST_RULE,
         .flags = 0,
         .policy = my_policy,
         .doit = handle_recv_list_rule_msg,

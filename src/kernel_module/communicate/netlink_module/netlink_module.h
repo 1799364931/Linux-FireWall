@@ -5,8 +5,13 @@
 #include <linux/module.h>
 #include <linux/netlink.h>
 #include <linux/slab.h>
+#include <linux/sprintf.h>
 #include <net/genetlink.h>
+#include "../../../public_structs/netlink_cmd_attr.h"
 #include "../buffer_parse/buffer_parse.h"
+
+
+#define REPLY_MSG_SIZE 64
 
 
 // todo 考虑建立一个统一的回送字符串接口
@@ -14,38 +19,22 @@ int handle_recv_add_rule_msg(struct sk_buff* skb, struct genl_info* info);
 int handle_recv_del_rule_msg(struct sk_buff* skb, struct genl_info* info);
 int handle_recv_mode_change_msg(struct sk_buff* skb, struct genl_info* info);
 int handle_recv_list_rule_msg(struct sk_buff* skb, struct genl_info* info);
+
 int send_rule_list_to_user(const char* black_buf,
                            int black_len,
                            const char* white_buf,
                            int white_len,
                            struct genl_info* info);
-/// ---------- 定义命令号和属性号 ----------
-enum {
-    CMD_UNSPEC,
-    CMD_ADD_RULE,  // 用户态要调用的命令
-    CMD_CHANGE_MOD,
-    CMD_LIST_RULE_CTRL,
-    CMD_LIST_RULE,
-    CMD_DEL_RULE
-};
 
-enum {
-    ATTR_UNSPEC,
-    ATTR_BUF,  // 用户态传递的缓冲区
-    ATTR_BLACK_LIST,
-    ATTR_WHITE_LIST,
-    __ATTR_MAX,
-};
+int send_msg_to_user(const char* msg_buf,
+                     int msg_len,
+                     struct genl_info* info,
+                     int cmd);
 
-#define MY_ATTR_MAX (__MY_ATTR_MAX - 1)
-
-/// ---------- 属性解析策略 ----------
 extern const struct nla_policy my_policy[__ATTR_MAX + 1];
 
-/// ---------- 命令表 ----------
 extern const struct genl_ops my_ops[];
 
-/// ---------- Family 定义 ----------
 extern struct genl_family my_family;
 
 #endif

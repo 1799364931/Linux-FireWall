@@ -10,7 +10,7 @@ CXXFLAGS := -Wall -O2 -std=c++17 \
 LDLIBS := -lnl-3 -lnl-genl-3
 
 # 源文件
-USR_SRCS := ./usr/firewall.cpp ./usr/cmd_parser/cmd_parser.cpp
+USR_SRCS := ./usr/firewall.cpp ./usr/cmd_parser/cmd_parser.cpp ./usr/netlink_tool/netlink_tool.cpp
 USR_OBJS := $(USR_SRCS:.cpp=.o)
 
 # 目标文件

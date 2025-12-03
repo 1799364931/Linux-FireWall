@@ -3,7 +3,7 @@
 #include "cmd_parser/cmd_parser.h"
 #include "netlink_tool/netlink_tool.h"
 
-bool check_ret(int ret) {
+void check_ret(int ret) {
     if (!ret) {
         std::abort();
         // printf("FAIL");
@@ -23,8 +23,10 @@ int main(int argc, char* argv[]) {
         ret = parser.parse_args((argc - 3) / 2);
         check_ret(ret);
         auto buffer_msg = parser.get_msg_buffer();
-        ret = netlink_tool.send_buffer(buffer_msg.data(), buffer_msg.size(), 1,
-                                       1);
+        ret = netlink_tool.send_buffer(buffer_msg.data(), buffer_msg.size(),
+                                       CMD_ADD_RULE, ATTR_BUF);
+        check_ret(ret);
+        ret = (int)netlink_tool.recv_once();
         check_ret(ret);
     } else if (parser.get_parser().exist("del")) {
         auto del_ids =
@@ -32,17 +34,22 @@ int main(int argc, char* argv[]) {
         check_ret(del_ids.has_value());
         ret = netlink_tool.send_buffer(
             (char*)del_ids.value().data(),
-            del_ids.value().size() * sizeof(uint32_t), 5, 1);
+            del_ids.value().size() * sizeof(uint32_t), CMD_DEL_RULE, ATTR_BUF);
 
+        check_ret(ret);
+        ret = (int)netlink_tool.recv_once();
         check_ret(ret);
 
     } else if (parser.get_parser().exist("mode")) {
         auto mode = parser.get_parser().get<std::string>("mode");
-        ret = netlink_tool.send_buffer(mode.data(), mode.length(), 2, 1);
+        ret = netlink_tool.send_buffer(mode.data(), mode.length(),
+                                       CMD_CHANGE_MOD, ATTR_BUF);
+        check_ret(ret);
+        ret = (int)netlink_tool.recv_once();
         check_ret(ret);
 
     } else if (parser.get_parser().exist("list")) {
-        ret = netlink_tool.send_buffer("", 0, 3, 1);
+        ret = netlink_tool.send_buffer("", 0, CMD_LIST_RULE, ATTR_BUF);
         check_ret(ret);
         ret = (int)netlink_tool.recv_once();
         check_ret(ret);
