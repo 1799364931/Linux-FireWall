@@ -16,6 +16,7 @@
 #include "filters/state_filter/state_filter.h"
 #include "filters/time_filter/time_filter.h"
 #include "rule/rule.h"
+#include "filters/logging_filter/logging_filter.h"
 
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("Kotori");
@@ -72,14 +73,20 @@ static struct nf_hook_ops hook_ops_array[] = {
         .pf = PF_INET,
         .hooknum = NF_INET_LOCAL_IN,
         .priority = NF_IP_PRI_LAST,
-    }
+    },
+          // 在 LOCAL_IN
+    {
+        .hook = logging_hook,
+        .pf = PF_INET,
+        .hooknum = NF_INET_LOCAL_IN,
+        .priority = NF_IP_PRI_LAST ,  // 最后执行，在最后的规则检查之后
+    },
 
 };
 
 static int __init firewall_init(void) {
     int ret;
     printk(KERN_INFO "Firewall module: Initializing...\n");
-
     // 注册netfilter钩子
     for (uint32_t i = 0;
          i < (sizeof(hook_ops_array) / sizeof(struct nf_hook_ops)); i++) {
