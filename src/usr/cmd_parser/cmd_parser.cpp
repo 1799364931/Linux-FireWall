@@ -85,7 +85,7 @@ std::optional<uint32_t> cmd_parser::ip_parse(std::string ip_str) {
     if (count != 4)
         return std::nullopt;
 
-    return result;
+    return ntohl(result);
 }
 
 std::optional<std::vector<char>> cmd_parser::mac_parse(std::string mac_str) {
