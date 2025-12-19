@@ -129,7 +129,7 @@ int send_msg_to_user(const char* msg_buf,
                       int cmd) {
     struct sk_buff* skb;
     void* hdr;
-
+    
     skb = genlmsg_new(NLMSG_GOODSIZE, GFP_KERNEL);
     if (!skb)
         return -ENOMEM;

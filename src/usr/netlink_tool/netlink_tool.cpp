@@ -2,7 +2,6 @@
 
 bool netlink_tool::init() {
     sock_ = nl_socket_alloc();
-    // 绑定到“有效消息”阶段
     nl_socket_modify_cb(sock_, NL_CB_VALID, NL_CB_CUSTOM, recv_msg, nullptr);
     if (!sock_) {
         std::cerr << "nl_socket_alloc failed\n";
