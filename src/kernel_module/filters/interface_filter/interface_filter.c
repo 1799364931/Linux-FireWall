@@ -1,4 +1,5 @@
 #include "interface_filter.h"
+#include "../rule_match_logging/rule_match_logging.h"  // 添加此行
 
 /* 接口过滤钩子函数 */
 unsigned int interface_filter_hook(void* priv,
@@ -6,17 +7,13 @@ unsigned int interface_filter_hook(void* priv,
                                    const struct nf_hook_state* state) {
     struct net_device* dev;
     struct iphdr* iph;
-
     if (!skb)
         return NF_ACCEPT;
-
     iph = ip_hdr(skb);
-
     dev = state->in;
     if (!dev) {
         return NF_ACCEPT;
     }
-
     struct rule_list* rule_list = get_rule_list(
         ENABLE_BLACK_LIST(skb) ? RULE_LIST_BLACK : RULE_LIST_WHITE);
     struct rule_list_node* mov;
@@ -34,6 +31,7 @@ unsigned int interface_filter_hook(void* priv,
         }
         if (ENABLE_BLACK_LIST(skb) &&
             mov->rule_bitmap == SKB_RULE_BITMAP(skb)) {
+            log_rule_match(mov->rule_id, mov, skb, "DROP");
             return NF_DROP;
         }
         // 白名单不会打上 tag
@@ -42,10 +40,10 @@ unsigned int interface_filter_hook(void* priv,
         // mov->rule_bitmap 标记了黑名单
         if (!ENABLE_BLACK_LIST(skb) &&
             mov->rule_bitmap == SKB_RULE_BITMAP(skb)) {
+            log_rule_match(mov->rule_id, mov, skb, "ACCEPT");
             return NF_ACCEPT;
         }
     }
-
     if (ENABLE_BLACK_LIST(skb)) {
         return NF_ACCEPT;
     } else {

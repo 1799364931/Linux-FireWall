@@ -1,5 +1,6 @@
 #include "ip_filter.h"
 #include <linux/inet.h>
+#include "../rule_match_logging/rule_match_logging.h" 
 
 #define RULE_IP_FILTER \
     RULE_SRC_IP | RULE_SRC_IP_MASK | RULE_DST_IP | RULE_DST_IP_MASK
@@ -7,21 +8,18 @@
 unsigned int ip_filter_hook(void* priv,
                             struct sk_buff* skb,
                             const struct nf_hook_state* state) {
-    // this is the first hook?
     memset(skb->cb, 0, sizeof(uint64_t));
     struct iphdr* iph;
-
     if (!skb)
         return NF_ACCEPT;
-
     iph = ip_hdr(skb);
     if (!iph)
         return NF_ACCEPT;
+
     //* 根据全局变量打标记
     if(BLACK_LIST_ENABLE){
         SKB_RULE_BITMAP(skb) |= RULE_BLACK;
     }
-
     struct rule_list* rule_list = get_rule_list(
         ENABLE_BLACK_LIST(skb) ? RULE_LIST_BLACK : RULE_LIST_WHITE);
     struct rule_list_node* mov;
@@ -32,7 +30,6 @@ unsigned int ip_filter_hook(void* priv,
                
                 switch (mov->conditions[i].match_type) {
                     case RULE_SRC_IP: {
-                        // printk(KERN_INFO "src=%pI4 dst=%pI4\n",mov->conditions[i].src_ip,iph->saddr);
                         if (iph->saddr == mov->conditions[i].src_ip) {
                             SKB_RULE_BITMAP(skb) |= RULE_SRC_IP;
                         }
@@ -47,7 +44,7 @@ unsigned int ip_filter_hook(void* priv,
                     }
                     case RULE_DST_IP: {
                         if (iph->daddr == mov->conditions[i].dst_ip) {
-                            SKB_RULE_BITMAP(skb) |= RULE_SRC_IP;
+                            SKB_RULE_BITMAP(skb) |= RULE_DST_IP;  // 修复：原代码写的是 RULE_SRC_IP
                         }
                         break;
                     }
@@ -64,10 +61,11 @@ unsigned int ip_filter_hook(void* priv,
             }
         }
         if (ENABLE_BLACK_LIST(skb) && mov->rule_bitmap == SKB_RULE_BITMAP(skb)) {
+            // 添加规则匹配日志
+            log_rule_match(mov->rule_id, mov, skb, "DROP");
             return NF_DROP;
         }
     }
-
     return NF_ACCEPT;
 }
 

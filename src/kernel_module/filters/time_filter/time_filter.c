@@ -2,6 +2,7 @@
  * time_filter.c - 时间过滤器实现
  */
 #include "time_filter.h"
+#include "../rule_match_logging/rule_match_logging.h"  // 添加此行
 
 /**
  * time_filter_hook - Netfilter钩子函数
@@ -10,18 +11,14 @@ unsigned int time_filter_hook(void* priv,
                               struct sk_buff* skb,
                               const struct nf_hook_state* state) {
     struct time_rule* time_rule;
-
     /* 检查SKB有效性 */
     if (!skb) {
         return NF_ACCEPT;
     }
-
     /* 遍历所有时间规则 */
-
     /*
         如果 现在时间∈规则包含时间 如果是丢弃则设置位图标记为True
         如果是接受则不设置
-
         如果 现在时间不属于规则包含时间 如果是丢弃就不管
         需要找到所有的接收时间的并集
     */
@@ -63,11 +60,11 @@ unsigned int time_filter_hook(void* priv,
                     }
                 }
                 if (mov->rule_bitmap == SKB_RULE_BITMAP(skb)) {
+                    log_rule_match(mov->rule_id, mov, skb, "DROP");
                     return NF_DROP;
                 }
             }
         }
-
         /* 没有匹配的规则，默认接受 */
         return NF_ACCEPT;
     } else {
@@ -113,15 +110,16 @@ unsigned int time_filter_hook(void* priv,
                         }
                     }
                 }
-
+                if (mov->rule_bitmap == SKB_RULE_BITMAP(skb)) {
+                    log_rule_match(mov->rule_id, mov, skb, "ACCEPT");
+                    return NF_ACCEPT;
+                }
             }
         }
-
         /* 没有匹配的规则，默认通过 */
         return NF_ACCEPT;
     }
 }
-
 /**
  * check_time_in_range - 检查当前时间是否在指定范围内
  */
@@ -133,19 +131,15 @@ int check_time_in_range(int start_hour,
     struct tm tm_now;
     int current_minutes, start_minutes, end_minutes;
     time64_t local_time;
-
     /* 获取当前时间 */
     ktime_get_real_ts64(&ts);
-
     /* 转换为本地时间 (假设UTC+8) */
     local_time = ts.tv_sec + 8 * 3600;
     time64_to_tm(local_time, 0, &tm_now);
-
     /* 将时间转换为分钟数，便于比较 */
     current_minutes = tm_now.tm_hour * 60 + tm_now.tm_min;
     start_minutes = start_hour * 60 + start_min;
     end_minutes = end_hour * 60 + end_min;
-
     /* 处理跨天情况 (如 23:00-01:00) */
     if (start_minutes > end_minutes) {
         /* 跨天规则：在开始时间之后或结束时间之前 */

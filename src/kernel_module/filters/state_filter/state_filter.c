@@ -1,4 +1,5 @@
 #include "state_filter.h"
+#include "../rule_match_logging/rule_match_logging.h"  // 添加此行
 
 static int check_tcp_state(struct sk_buff* skb);
 /**
@@ -12,7 +13,6 @@ unsigned int state_filter_hook(void* priv,
     if (!skb) {
         return NF_DROP;
     }
-
     if (ENABLE_BLACK_LIST(skb)) {
         struct rule_list* black_list = get_rule_list(RULE_LIST_BLACK);
         struct rule_list_node* mov;
@@ -29,6 +29,7 @@ unsigned int state_filter_hook(void* priv,
                 }
             }
             if (mov->rule_bitmap == SKB_RULE_BITMAP(skb)) {
+                log_rule_match(mov->rule_id, mov, skb, "DROP");
                 return NF_DROP;
             }
         }
@@ -47,14 +48,15 @@ unsigned int state_filter_hook(void* priv,
                     }
                 }
             }
+            if (mov->rule_bitmap == SKB_RULE_BITMAP(skb)) {
+                log_rule_match(mov->rule_id, mov, skb, "ACCEPT");
+                return NF_ACCEPT;
+            }
         }
     }
-
     // 黑名单过滤
-
     return NF_ACCEPT;
 }
-
 /**
  * 解析TCP连接状态（核心函数）
  * 返回：1=允许通过（已建立连接），0=拒绝（新连接/无效状态）
@@ -72,20 +74,17 @@ static int check_tcp_state(struct sk_buff* skb) {
     if (ip_hlen < sizeof(struct iphdr)) {
         return 0;  // IP头不完整，拒绝
     }
-
     // 2. 仅处理TCP协议（UDP/ICMP无连接状态，直接放行或拒绝，可自定义）
     if (iph->protocol != IPPROTO_TCP) {
         // 可选：UDP/ICMP按需求配置，这里默认放行（可改为return 0拒绝）
         return 1;
     }
-
     // 3. 提取TCP头并检查有效性
     tcph = tcp_hdr(skb);
     tcp_hlen = tcph->doff * 4;
     if (tcp_hlen < sizeof(struct tcphdr)) {
         return 0;  // TCP头不完整，拒绝
     }
-
     // 4. 判断TCP连接状态（核心逻辑）
     // 允许：已建立连接（ESTABLISHED）→ 无SYN/FIN/RST标志，或双向数据传输
     // 拒绝：新连接请求（SYN=1）、关闭连接（FIN=1）、重置连接（RST=1）

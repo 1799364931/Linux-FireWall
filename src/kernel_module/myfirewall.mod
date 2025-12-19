@@ -11,5 +11,6 @@
 ./filters/port_filter/port_filter.o
 ./filters/ip_filter/ip_filter.o
 ./filters/logging_filter/logging_filter.o
+./filters/rule_match_logging/rule_match_logging.o
 ./communicate/netlink_module/netlink_module.o
 ./communicate/buffer_parse/buffer_parse.o
