@@ -321,15 +321,230 @@ list_for_each_entry(mov, &rule_list->nodes, list) {
 + 内核态代码受限，由于内核态需要严格遵循C语言标准，且无法使用用户态头文件，故难以采用类似于`json`这样的方式进行简易的反序列化。
 + 内核态与用户态代码规范不同，只能最低程度共享C语言标准的结构体形式。
 
+因此，基于上述特性，本实验中实现的防火墙利用下述方式解决上述问题：
++ 不定长结构、用户-内核代码不共享：利用柔性数组和元数据与序列化的缓冲区来进行数据传递，保证数据传递的灵活性和完整性。
++ 代码规范不同：提取不含指针的变量作为公共结构体，将对应的指针指向改为缓冲区中的偏移位置。
 
+##### 3.2.4.1 序列化结构设计
 
+基于以上思路，本实验中的安全规则序列化方式如下：
++ 对于固定长度的过滤条件，如`IP`(4bytes)、`MAC`(6bytes)等，则直接传递对应的结构体信息。
++ 对于非固定的过滤条件，如`content`、`interface`等，则在结构体中存储数据缓冲区的偏移指针，并且利用序列化的方式
+在缓冲区中存储元数据+原始数据，以方便反序列化。
 
+因此，最终的传递信息结构为：
+```
+| rule_entry_msg | extra_data_buffer |
+
+| rule_entry_msg | 
+    |
+    └ | condition_count [4 bytes] | padding zero [4 bytes] | bitmap [8 bytes] | 
+        | conditions[0] | conditions[1] | ..... | conditions[condition_count-1] |  
+
+| extra_data_buffer|
+    |
+    └ | contents | times | interface |
+
+| contents |
+    |
+    └ | contents_count [4 bytes] | content1_length(without '\0') [4 bytes] | content1 [content1_length * 4 bytes] | .... | contentN_length(without '\0') [4 bytes] | contentN [content1_length * 4 bytes] |
+
+| times | 
+    |
+    └ | time_pair_count [4 bytes] | pair1_start_hour [4 bytes] | pair1_start_minute [4 bytes] | pair1_end_hour [4 bytes] | pair1_end_minute [4 bytes] .... | pairN_start_hour [4 bytes] | pairN_start_minute [4 bytes] | pairN_end_hour [4 bytes] | pairN_end_minute [4 bytes] |
+
+| interface |
+    |
+    └ | interface_str_length(without '\0') [4 bytes]| interface_str | 
+```
+
+##### 3.2.4.2 序列化代码实现
+
+以字符串过滤条件为例，首先利用柔性数组开辟过滤条件数组`conditions`的空间，然后在对应的`condition`位置写入缓冲区偏移量、
+长度，最后将信息写入缓冲区。
+
+```cpp
+    if (parser_.exist("content")) {
+        auto contents = content_parse(parser_.get<std::string>("content"));
+        if (contents.has_value()) {
+            uint32_t total_size = sizeof(uint32_t);
+            // 计算所需空间大小
+            for (auto& str : contents.value()) {
+                total_size += str.length() + sizeof(uint32_t);
+            }
+            // 开辟额外缓冲区空间
+            buffer_.resize(total_size);
+
+            auto ptr = buffer_.data() + buffer_offset_;
+            
+            int len = static_cast<int>(contents.value().size());
+            // 写入字符串数量
+            std::memcpy(ptr, &len, sizeof(len));
+            ptr += sizeof(int);
+            for (auto& str : contents.value()) {
+                // 写入字符串长度
+                len = static_cast<int>(str.length());
+                std::memcpy(ptr, &len, sizeof(len));
+                ptr += sizeof(int);
+                // 写入原始字符串
+                std::memcpy(ptr, str.data(), str.length());
+                ptr += str.length();
+            }
+            // 更新偏移位置
+            entry_->conditions[entry_->condition_count].buffer_offset =
+                buffer_offset_;
+            buffer_offset_ = buffer_.size();
+            entry_->conditions[entry_->condition_count].buffer_len = total_size;
+            entry_->conditions[entry_->condition_count].match_type =
+                RULE_CONTENT;
+            entry_->bitmap |= RULE_CONTENT;
+            entry_->condition_count++;
+
+        } else {
+            std::cout << "arg content parse fail" << std::endl;
+
+            // 失败处理
+            return false;
+        }
+    }
+```
+
+##### 3.2.4.3 反序列化代码实现
+反序列化代码只需要将序列化后的信息重新组织为对应的数据形式即可，对于无需存储在额外缓冲区的过滤条件而言，
+其反序列化只要直接读取对应信息即可。而对于需要在额外缓冲区存储信息的过滤条件，则需要根据偏移量和序列化格式，
+重新组织新的数据结构。
+
+```cpp
+// 字符串反序列化 部分代码
+    uint32_t strs_cnt = read_u32(
+        buffer_data_ptr, entry->conditions[i].buffer_offset);
+
+    struct content_rule_list* content_list =
+        kmalloc(sizeof(struct content_rule_list), GFP_KERNEL);
+
+    node->conditions[i].content_list = content_list;
+    content_list->count = strs_cnt;
+    // 新建一个字符串链表
+    INIT_LIST_HEAD(&content_list->head);
+    
+    
+    char* buffer_data_mov_ptr = buffer_data_ptr +
+                                entry->conditions[i].buffer_offset +
+                                sizeof(uint32_t);
+
+    for (uint32_t j = 0; j < strs_cnt; j++) {
+        struct content_rule* rule =
+            kmalloc(sizeof(*rule), GFP_KERNEL);
+        uint32_t str_len = *buffer_data_mov_ptr;
+        buffer_data_mov_ptr += sizeof(uint32_t);
+        // 获取字符串长度
+        rule->str_len = str_len;
+        rule->target_str =
+            kmalloc(str_len + sizeof(char), GFP_KERNEL);
+
+        // 获取字符串
+        memcpy(rule->target_str, buffer_data_mov_ptr, str_len);
+        rule->target_str[str_len] = '\0';
+        buffer_data_mov_ptr += str_len;
+
+        // 把数组元素挂到链表
+        INIT_LIST_HEAD(&rule->list);
+        list_add_tail(&rule->list, &content_list->head);
+    }
+
+    break;
+```
 
 ### 3.3 日志记录设计
 
 ### 3.4 用户交互设计
 
-#### 3.4.1 命令行设计
+### 3.5 命令行设计
+```shell
+./firewall [命令] [选项1] [参数1] [选项2] [参数2]  
+```
+
+#### 3.5.1 命令
++ `add` 增加规则
++ `del` 删除规则
++ `list` 输出当前规则
++ `mode` 更改名单规则
+
+#### 3.5.2 选项
++ `--src-ip` 
++ `--dst-ip` 
++ `--src-ip-mask`
++ `--dst-ip-mask`
++ `--dst-port`
++ `--src-port`
++ `--dst-mac`
++ `--src-mac`
++ `--proto` 要过滤的IPV4协议
++ `--time-drop` 丢弃这段时间内的数据包
++ `--time-accept` 只允许这段时间内的数据包
++ `--est` 只允许建立连接的数据包通过
++ `--content "str1" "str2" "str3" ....` 过滤包含这些关键字的包
++ `--interface` 过滤对应的接口
++ `--drop / --accept` 黑名单/白名单模式下有效
++ `w/W b/B` 更改黑/白名单
+
+### 3.5.3 命令行实例
+
+#### 3.5.3.1 --add
+`--add`参数用于增加规则，其必须包含`--drop`或`--accept`参数来指明增加的规则是属于黑名单规则还是白名单规则，即对满足匹配规则的数据包进行丢弃还是接受。
+
+```shell
+# 过滤进入本机的，源IP地址为:123.123.123.123 目标端口为:80 的数据包
+./firewall --add --src-ip 123.123.123.123 --dst-port 80 --drop
+
+# 过滤进入本机的，源MAC地址为：00:0c:29:09:f2:b0 协议为：icmp 的数据包
+./firewall --add --src-mac  00:0c:29:09:f2:b0 --proto icmp --drop
+
+# 在12:00 - 14:00 时间段内丢弃所有源地址为：123.123.123.123 内容负载包含：abcd 或 efg 的数据包
+./firewall --add --time-drop "12:00 14:00" --src-ip 123.123.123.123 --content ""abcd" "efg"" --drop
+
+# 过滤所有非已建立连接的数据包
+./firewall --add --est 1 --drop
+
+# 只允许icmp协议数据包进入本机
+./firewall --add --proto icmp --accept
+
+# 只允许通过本机 ens12 网络接口，源地址IP网段属于123.123.0.0的数据包进入本机
+./firewall --add --src-ip-mask 123.123.0.0 --interface ens12 --accept
+
+```
+
+#### 3.5.3.2 --list
+
+``--list``参数用于列出当前已存在的防火墙规则。
+
+```shell
+./firewall --list
+```
+
+#### 3.5.3.3 --del
+
+`--del`参数接受一个`rule id`即`--list`返回的`Rule {rule id}`，以删除选中的规则。
+
+```shell
+# 删除Rule 0规则 ，见上图
+./firewall --del 0
+```
+
+#### 3.5.3.4 --mode
+`--mode` 参数接受一个字符以改变防火墙的名单过滤规则，切换黑/白名单过滤。
+
+```shell
+# 切换为白名单
+./firewall --mode w
+
+./firewall --mode W
+
+# 切换为黑名单
+./firewall --mode b
+
+./firewall --mode B
+```
 
 #### 3.4.2 前后端设计
 
