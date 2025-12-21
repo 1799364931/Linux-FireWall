@@ -14,6 +14,11 @@
 #define REPLY_MSG_SIZE 64
 
 
+/* Rate Limiter 处理函数 */
+int handle_recv_add_rate_limit_msg(struct sk_buff* skb, struct genl_info* info);
+int handle_recv_del_rate_limit_msg(struct sk_buff* skb, struct genl_info* info);
+int handle_recv_list_rate_limit_msg(struct sk_buff* skb, struct genl_info* info);
+int handle_recv_reset_rate_limit_stats_msg(struct sk_buff* skb, struct genl_info* info);
 // todo 考虑建立一个统一的回送字符串接口
 int handle_recv_add_rule_msg(struct sk_buff* skb, struct genl_info* info);
 int handle_recv_del_rule_msg(struct sk_buff* skb, struct genl_info* info);

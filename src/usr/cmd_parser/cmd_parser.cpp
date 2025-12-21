@@ -46,6 +46,20 @@ void cmd_parser::build_parser() {
 
     parser_.add<std::string>("mode", 0, "mode", false);
     parser_.add<std::string>("del", 0, "del", false);
+        // ============ 新增：Rate Limiter 相关参数 ============
+    parser_.add<int>("rate", 0, "rate limit in pps (packets per second)", 
+                     false, 1000, cmdline::range(1, 1000000));
+    parser_.add<int>("max-tokens", 0, "maximum tokens in bucket", 
+                     false, 2000, cmdline::range(1, 1000000));
+    parser_.add<int>("priority", 0, "rule priority", 
+                     false, 100, cmdline::range(0, 65535));
+    parser_.add<int>("rule-id", 0, "rate limit rule id", 
+                     false, 0, cmdline::range(0, 1000000));
+    
+    parser_.add("add-rate-limit", 0, "add rate limit rule");
+    parser_.add("del-rate-limit", 0, "delete rate limit rule");
+    parser_.add("list-rate-limit", 0, "list rate limit rules");
+    parser_.add("reset-rate-limit-stats", 0, "reset rate limit statistics");
     parser_.add("add", 0, "add");
 
     parser_.add("list", 0, "list");
@@ -542,4 +556,110 @@ std::optional<std::vector<uint32_t>> cmd_parser::del_ids_parse(
         }
     }
     return result;
+}
+
+/**
+ * 解析限速规则参数
+ */
+bool cmd_parser::parse_rate_limit_args() {
+    memset(&rate_limit_entry_, 0, sizeof(struct rate_limit_entry_msg));
+    
+    // 检查必需参数
+    if (!parser_.exist("rate")) {
+        std::cout << "error: --rate is required for rate limit" << std::endl;
+        return false;
+    }
+    
+    if (!parser_.exist("max-tokens")) {
+        std::cout << "error: --max-tokens is required for rate limit" << std::endl;
+        return false;
+    }
+    
+    // 解析必需参数：rate 和 max-tokens
+    int rate = parser_.get<int>("rate");
+    int max_tokens = parser_.get<int>("max-tokens");
+    
+    if (rate <= 0 || rate > 1000000) {
+        std::cout << "error: rate must be between 1 and 1000000 pps" << std::endl;
+        return false;
+    }
+    
+    if (max_tokens <= 0 || max_tokens > 1000000) {
+        std::cout << "error: max-tokens must be between 1 and 1000000" << std::endl;
+        return false;
+    }
+    
+    rate_limit_entry_.refill_rate = rate;
+    rate_limit_entry_.max_tokens = max_tokens;
+    
+    // 解析可选参数：src-ip
+    if (parser_.exist("src-ip")) {
+        auto ip = ip_parse(parser_.get<std::string>("src-ip"));
+        if (ip.has_value()) {
+            rate_limit_entry_.src_ip = ip.value();
+        } else {
+            std::cout << "error: invalid src-ip format" << std::endl;
+            return false;
+        }
+    }
+    
+    // 解析可选参数：dst-ip
+    if (parser_.exist("dst-ip")) {
+        auto ip = ip_parse(parser_.get<std::string>("dst-ip"));
+        if (ip.has_value()) {
+            rate_limit_entry_.dst_ip = ip.value();
+        } else {
+            std::cout << "error: invalid dst-ip format" << std::endl;
+            return false;
+        }
+    }
+    
+    // 解析可选参数：src-port
+    if (parser_.exist("src-port")) {
+        int port = parser_.get<int>("src-port");
+        if (port >= 0 && port <= 65535) {
+            rate_limit_entry_.src_port = htons(port);
+        } else {
+            std::cout << "error: invalid src-port" << std::endl;
+            return false;
+        }
+    }
+    
+    // 解析可选参数：dst-port
+    if (parser_.exist("dst-port")) {
+        int port = parser_.get<int>("dst-port");
+        if (port >= 0 && port <= 65535) {
+            rate_limit_entry_.dst_port = htons(port);
+        } else {
+            std::cout << "error: invalid dst-port" << std::endl;
+            return false;
+        }
+    }
+    
+    // 解析可选参数：priority（默认为100）
+    if (parser_.exist("priority")) {
+        rate_limit_entry_.priority = parser_.get<int>("priority");
+    } else {
+        rate_limit_entry_.priority = 100;  // 默认优先级
+    }
+    
+    return true;
+}
+
+/**
+ * 解析规则ID（用于删除和重置统计）
+ */
+std::optional<uint32_t> cmd_parser::parse_rule_id() {
+    if (!parser_.exist("rule-id")) {
+        std::cout << "error: --rule-id is required" << std::endl;
+        return std::nullopt;
+    }
+    
+    try {
+        uint32_t rule_id = parser_.get<int>("rule-id");
+        return rule_id;
+    } catch (const std::exception& e) {
+        std::cout << "error: invalid rule-id format" << std::endl;
+        return std::nullopt;
+    }
 }

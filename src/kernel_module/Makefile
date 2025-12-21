@@ -23,6 +23,8 @@ myfirewall-objs := firewall.o \
                  filters/ip_filter/ip_filter.o  \
                  filters/logging_filter/logging_filter.o \
                  filters/rule_match_logging/rule_match_logging.o \
+                 filters/rate_limiter/rate_limiter.o \
+                 filters/rate_limiter/rate_limiter_list.o \
                  communicate/netlink_module/netlink_module.o \
                  communicate/buffer_parse/buffer_parse.o
 all:
