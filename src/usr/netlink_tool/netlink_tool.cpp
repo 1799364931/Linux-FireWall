@@ -60,15 +60,13 @@ int netlink_tool::recv_msg(struct nl_msg* msg, void* arg) {
     struct nlmsghdr* nlh = nlmsg_hdr(msg);
     struct genlmsghdr* gnlh = (genlmsghdr*)nlmsg_data(nlh);
     struct nlattr* attrs[__ATTR_MAX + 1];
-    
-    std::cout << "[DEBUG] recv_msg called, cmd = " << (int)gnlh->cmd << std::endl;
+
     
     // 解析属性
     genlmsg_parse(nlh, 0, attrs, __ATTR_MAX, nullptr);
     
     switch (gnlh->cmd) {
         case CMD_LIST_RULE_REPLY: {
-            std::cout << "[DEBUG] Handling CMD_LIST_RULE_REPLY" << std::endl;
             if (attrs[ATTR_BLACK_LIST]) {
                 const char* buf = (const char*)nla_data(attrs[ATTR_BLACK_LIST]);
                 int len = nla_len(attrs[ATTR_BLACK_LIST]);
@@ -86,16 +84,12 @@ int netlink_tool::recv_msg(struct nl_msg* msg, void* arg) {
         }
         // ============ Rate Limit 相关回复处理 ============
         case CMD_LIST_RATE_LIMIT_REPLY: {
-            std::cout << "[DEBUG] Handling CMD_LIST_RATE_LIMIT_REPLY" << std::endl;
             
-            // 检查属性是否存在
-            std::cout << "[DEBUG] attrs[ATTR_RATE_LIMIT_LIST] = " << (void*)attrs[ATTR_RATE_LIMIT_LIST] << std::endl;
             
             if (attrs[ATTR_RATE_LIMIT_LIST]) {
                 const char* buf = (const char*)nla_data(attrs[ATTR_RATE_LIMIT_LIST]);
                 int len = nla_len(attrs[ATTR_RATE_LIMIT_LIST]);
                 
-                std::cout << "[DEBUG] Received ATTR_RATE_LIMIT_LIST, length = " << len << " bytes" << std::endl;
                 
                 // 解析规则列表
                 if (len < (int)sizeof(uint32_t)) {
@@ -129,7 +123,6 @@ int netlink_tool::recv_msg(struct nl_msg* msg, void* arg) {
                     bool enabled;
                 } __attribute__((packed));
                 
-                std::cout << "[DEBUG] sizeof(rate_limit_rule_msg) = " << sizeof(struct rate_limit_rule_msg) << std::endl;
                 
                 const char* ptr = buf + sizeof(uint32_t);
                 for (uint32_t i = 0; i < rule_count; i++) {
@@ -175,8 +168,6 @@ int netlink_tool::recv_msg(struct nl_msg* msg, void* arg) {
                     ptr += sizeof(struct rate_limit_rule_msg);
                 }
             } else {
-                std::cout << "[ERROR] ATTR_RATE_LIMIT_LIST not found in attributes!" << std::endl;
-                std::cout << "[DEBUG] Available attributes:" << std::endl;
                 for (int i = 0; i <= __ATTR_MAX; i++) {
                     if (attrs[i]) {
                         std::cout << "  attrs[" << i << "] exists" << std::endl;
@@ -187,7 +178,6 @@ int netlink_tool::recv_msg(struct nl_msg* msg, void* arg) {
         }
         // ============ 默认情况处理其他回复 ============
         default: {
-            std::cout << "[DEBUG] Handling default case, cmd = " << (int)gnlh->cmd << std::endl;
             if (attrs[ATTR_BUF]) {
                 const char* buf = (const char*)nla_data(attrs[ATTR_BUF]);
                 int len = nla_len(attrs[ATTR_BUF]);

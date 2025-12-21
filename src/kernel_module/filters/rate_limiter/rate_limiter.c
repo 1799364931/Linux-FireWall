@@ -156,7 +156,7 @@ unsigned int rate_limiter_hook(void *priv,
     
     // 每秒打印一次（避免日志爆炸）
     if (time_after(now, last_print + HZ)) {
-        printk(KERN_INFO "rate_limiter_hook: called, packets processed\n");
+        // printk(KERN_INFO "rate_limiter_hook: called, packets processed\n");
         last_print = now;
     }
     

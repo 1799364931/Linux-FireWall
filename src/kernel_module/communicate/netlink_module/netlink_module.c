@@ -19,8 +19,7 @@ int handle_recv_add_rate_limit_msg(struct sk_buff* skb, struct genl_info* info) 
     struct rate_limit_rule *rule;
     char *reply_msg;
     
-    printk(KERN_INFO "=== handle_recv_add_rate_limit_msg called ===\n");
-    printk(KERN_INFO "info->attrs[ATTR_BUF] = %p\n", info->attrs[ATTR_BUF]);
+
     
     if (!info->attrs[ATTR_BUF]) {
         printk(KERN_ERR "netlink: missing buffer attribute\n");
@@ -29,18 +28,18 @@ int handle_recv_add_rate_limit_msg(struct sk_buff* skb, struct genl_info* info) 
     }
     
     int buf_len = nla_len(info->attrs[ATTR_BUF]);
-    printk(KERN_INFO "Received buffer length: %d bytes\n", buf_len);
-    printk(KERN_INFO "Expected length: %lu bytes\n", sizeof(struct rate_limit_entry_msg));
+    // printk(KERN_INFO "Received buffer length: %d bytes\n", buf_len);
+    // printk(KERN_INFO "Expected length: %lu bytes\n", sizeof(struct rate_limit_entry_msg));
     
     entry = (struct rate_limit_entry_msg*)nla_data(info->attrs[ATTR_BUF]);
     
-    printk(KERN_INFO "rate_limiter: received add rule request\n");
-    printk(KERN_INFO "  rate=%u pps, max_tokens=%u\n",
-           entry->refill_rate, entry->max_tokens);
-    printk(KERN_INFO "  src_ip=0x%x, dst_ip=0x%x\n",
-           entry->src_ip, entry->dst_ip);
-    printk(KERN_INFO "  src_port=%hu, dst_port=%hu, priority=%u\n",
-           ntohs(entry->src_port), ntohs(entry->dst_port), entry->priority);
+    // printk(KERN_INFO "rate_limiter: received add rule request\n");
+    // printk(KERN_INFO "  rate=%u pps, max_tokens=%u\n",
+    //        entry->refill_rate, entry->max_tokens);
+    // printk(KERN_INFO "  src_ip=0x%x, dst_ip=0x%x\n",
+    //        entry->src_ip, entry->dst_ip);
+    // printk(KERN_INFO "  src_port=%hu, dst_port=%hu, priority=%u\n",
+    //        ntohs(entry->src_port), ntohs(entry->dst_port), entry->priority);
     /* 创建新的限速规则 */
     rule = create_rate_limit_rule(entry->refill_rate,
                                   entry->max_tokens,
@@ -120,7 +119,7 @@ int handle_recv_list_rate_limit_msg(struct sk_buff* skb, struct genl_info* info)
     struct sk_buff *reply_skb;
     void *hdr;
     
-    printk(KERN_INFO "=== handle_recv_list_rate_limit_msg called ===\n");
+    // printk(KERN_INFO "=== handle_recv_list_rate_limit_msg called ===\n");
     
     msg_len = build_rate_limit_list_msg(&msg_buffer);
     
