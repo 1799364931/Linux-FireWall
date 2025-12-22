@@ -287,13 +287,13 @@ uint32_t build_rule_list_msg(char** target_buffer_ptr,
                 }
                 case RULE_STATE_POLICY_DENY_ALL_NEW: {
                     written += scnprintf(ptr + written, RULE_MSG_SIZE - written,
-                                         "state-filte=true");
+                                         "state_filte=true ");
                     break;
                 }
                 case RULE_INTERFACE: {
                     written +=
                         scnprintf(ptr + written, RULE_MSG_SIZE - written,
-                                  "dst_mac=%s ", pos->conditions[i].interface);
+                                  "interface=%s ", pos->conditions[i].interface);
                     break;
                 }
             }
