@@ -185,28 +185,24 @@ uint32_t build_rule_list_msg(char** target_buffer_ptr,
         for (uint32_t i = 0; i < pos->condition_count; i++) {
             switch (pos->conditions[i].match_type) {
                 case RULE_SRC_IP: {
-                    uint32_t t_ip = htonl(pos->conditions[i].src_ip);
                     written +=
                         scnprintf(ptr + written, RULE_MSG_SIZE - written,
                                   "src_ip=%pI4 ", &pos->conditions[i].src_ip);
                     break;
                 }
                 case RULE_SRC_IP_MASK: {
-                    uint32_t t_ip = htonl(pos->conditions[i].src_mask_ip);
                     written +=
                         scnprintf(ptr + written, RULE_MSG_SIZE - written,
                                   "src_ip_mask=%pI4 ", &pos->conditions[i].src_mask_ip);
                     break;
                 }
                 case RULE_DST_IP: {
-                    uint32_t t_ip = htonl(pos->conditions[i].dst_ip);
                     written +=
                         scnprintf(ptr + written, RULE_MSG_SIZE - written,
                                   "dst_ip=%pI4 ", &pos->conditions[i].dst_ip);
                     break;
                 }
                 case RULE_DST_IP_MASK: {
-                    uint32_t t_ip = htonl(pos->conditions[i].dst_mask_ip);
                     written +=
                         scnprintf(ptr + written, RULE_MSG_SIZE - written,
                                   "dst_ip_mask=%pI4 ", &pos->conditions[i].dst_mask_ip);

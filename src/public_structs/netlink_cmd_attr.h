@@ -18,6 +18,10 @@ enum {
     CMD_DEL_RATE_LIMIT_REPLY,
     CMD_LIST_RATE_LIMIT_REPLY,
     CMD_RESET_RATE_LIMIT_STATS_REPLY,
+
+    CMD_LOGGING_REGISTER,
+    CMD_LOGGING_REGISTER_REPLY,
+    CMD_LOGGING_FETCH,
 };
 
 enum {
@@ -28,6 +32,8 @@ enum {
     
     /* 新增：Rate Limiter 属性 */
     ATTR_RATE_LIMIT_LIST,
+
+    ATTR_LOG,
     
     __ATTR_MAX,
 };

@@ -9,8 +9,10 @@
 #include <cstdint>
 #include <cstring>
 #include <iostream>
+#include <queue>
 #include <string>
-#include "../../public_structs/netlink_cmd_attr.h"
+#include "../../../public_structs/netlink_cmd_attr.h"
+#include "log_info_queue.h"
 
 class netlink_tool {
    public:
@@ -22,26 +24,29 @@ class netlink_tool {
             nl_socket_free(sock_);
         }
     }
-    
+
     // 初始化 Netlink socket 并解析 family id
     bool init();
-    
+
     // 发送 buffer，cmd 和 attr 作为参数传入
     bool send_buffer(const char* startpos,
                      uint32_t bufferlen,
                      int cmd,
                      int attr);
-    
+
     // 接收消息的回调函数
     static int recv_msg(struct nl_msg* msg, void* arg);
-    
-    // 接收一次消息
-    bool recv_once();
+
+    // 接收一次响应消息
+    bool recv_reply_once();
+
+    static log_info_queue& get_log_info_queue() { return log_info_queue_; };
 
    private:
-    std::string family_name_;  // Netlink family 名称
-    struct nl_sock* sock_;     // Netlink socket
-    int family_id_;            // family id（通过名字解析得到）
+    std::string family_name_;               // Netlink family 名称
+    struct nl_sock* sock_;                  // Netlink socket
+    int family_id_;                         // family id（通过名字解析得到）
+    static log_info_queue log_info_queue_;  // 日志信息队列
 };
 
 #endif

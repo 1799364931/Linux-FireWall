@@ -28,7 +28,7 @@ int main(int argc, char* argv[]) {
         ret = netlink_tool.send_buffer(buffer_msg.data(), buffer_msg.size(),
                                        CMD_ADD_RULE, ATTR_BUF);
         check_ret(ret);
-        ret = (int)netlink_tool.recv_once();
+        ret = (int)netlink_tool.recv_reply_once();
         check_ret(ret);
     } else if (parser.get_parser().exist("del")) {
         auto del_ids =
@@ -38,19 +38,19 @@ int main(int argc, char* argv[]) {
             (char*)del_ids.value().data(),
             del_ids.value().size() * sizeof(uint32_t), CMD_DEL_RULE, ATTR_BUF);
         check_ret(ret);
-        ret = (int)netlink_tool.recv_once();
+        ret = (int)netlink_tool.recv_reply_once();
         check_ret(ret);
     } else if (parser.get_parser().exist("mode")) {
         auto mode = parser.get_parser().get<std::string>("mode");
         ret = netlink_tool.send_buffer(mode.data(), mode.length(),
                                        CMD_CHANGE_MOD, ATTR_BUF);
         check_ret(ret);
-        ret = (int)netlink_tool.recv_once();
+        ret = (int)netlink_tool.recv_reply_once();
         check_ret(ret);
     } else if (parser.get_parser().exist("list")) {
         ret = netlink_tool.send_buffer("", 0, CMD_LIST_RULE, ATTR_BUF);
         check_ret(ret);
-        ret = (int)netlink_tool.recv_once();
+        ret = (int)netlink_tool.recv_reply_once();
         check_ret(ret);
     } 
     // ============ 新增：Rate Limit 命令处理 ============
@@ -66,7 +66,7 @@ int main(int argc, char* argv[]) {
         if (!ret) {
             return 1;
         }
-        ret = (int)netlink_tool.recv_once();
+        ret = (int)netlink_tool.recv_reply_once();
         check_ret(ret);
     } else if (parser.get_parser().exist("del-rate-limit")) {
         auto rule_id = parser.parse_rule_id();
@@ -76,12 +76,12 @@ int main(int argc, char* argv[]) {
             (char*)&rule_id.value(),
             sizeof(uint32_t), CMD_DEL_RATE_LIMIT, ATTR_BUF);
         check_ret(ret);
-        ret = (int)netlink_tool.recv_once();
+        ret = (int)netlink_tool.recv_reply_once();
         check_ret(ret);
     } else if (parser.get_parser().exist("list-rate-limit")) {
         ret = netlink_tool.send_buffer("", 0, CMD_LIST_RATE_LIMIT, ATTR_BUF);
         check_ret(ret);
-        ret = (int)netlink_tool.recv_once();
+        ret = (int)netlink_tool.recv_reply_once();
         check_ret(ret);
     } else if (parser.get_parser().exist("reset-rate-limit-stats")) {
         auto rule_id = parser.parse_rule_id();
@@ -91,7 +91,7 @@ int main(int argc, char* argv[]) {
             (char*)&rule_id.value(),
             sizeof(uint32_t), CMD_RESET_RATE_LIMIT_STATS, ATTR_BUF);
         check_ret(ret);
-        ret = (int)netlink_tool.recv_once();
+        ret = (int)netlink_tool.recv_reply_once();
         check_ret(ret);
         }
     

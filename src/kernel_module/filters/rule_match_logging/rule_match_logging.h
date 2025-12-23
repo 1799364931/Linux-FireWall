@@ -11,6 +11,7 @@
 #include <linux/time64.h>
 #include <linux/timekeeping.h>
 #include "../../rule/rule.h"
+#include "../../communicate/netlink_module/netlink_module.h"
 
 /**
  * 规则匹配日志记录函数
@@ -31,5 +32,10 @@ void log_rule_match(uint32_t rule_id,
  * 返回格式: "HH:MM:SS.ffffff"
  */
 void get_rule_match_timestamp(char* timestamp_buf, size_t buf_size);
+
+
+/**
+ * 记录需要发送的信息
+ */
 
 #endif /* _RULE_MATCH_LOGGING_H */

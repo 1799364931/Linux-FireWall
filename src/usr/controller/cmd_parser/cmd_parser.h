@@ -8,8 +8,8 @@
 #include <unordered_map>
 #include <utility>
 #include <vector>
-#include "../../public_structs/match_condition_msg.h"
-#include "../../public_structs/rule_bitmap.h"
+#include "../../../public_structs/match_condition_msg.h"
+#include "../../../public_structs/rule_bitmap.h"
 #include "cmdline.h"
 
 // ============ Rate Limiter 相关结构体 ============

@@ -27,7 +27,6 @@ unsigned int ip_filter_hook(void* priv,
         // 判断是否有IP相关的 过滤规则
         if (mov->rule_bitmap & (RULE_IP_FILTER)) {
             for (uint32_t i = 0; i < mov->condition_count; i++) {
-               
                 switch (mov->conditions[i].match_type) {
                     case RULE_SRC_IP: {
                         if (iph->saddr == mov->conditions[i].src_ip) {

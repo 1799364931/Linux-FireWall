@@ -10,16 +10,16 @@
 #include "../../../public_structs/netlink_cmd_attr.h"
 #include "../buffer_parse/buffer_parse.h"
 
-
-#define REPLY_MSG_SIZE 64
-
+#define REPLY_MSG_SIZE 256
 
 /* Rate Limiter 处理函数 */
 int handle_recv_add_rate_limit_msg(struct sk_buff* skb, struct genl_info* info);
 int handle_recv_del_rate_limit_msg(struct sk_buff* skb, struct genl_info* info);
-int handle_recv_list_rate_limit_msg(struct sk_buff* skb, struct genl_info* info);
-int handle_recv_reset_rate_limit_stats_msg(struct sk_buff* skb, struct genl_info* info);
-// todo 考虑建立一个统一的回送字符串接口
+int handle_recv_list_rate_limit_msg(struct sk_buff* skb,
+                                    struct genl_info* info);
+int handle_recv_reset_rate_limit_stats_msg(struct sk_buff* skb,
+                                           struct genl_info* info);
+int handle_recv_logging_register(struct sk_buff* skb, struct genl_info* info);
 int handle_recv_add_rule_msg(struct sk_buff* skb, struct genl_info* info);
 int handle_recv_del_rule_msg(struct sk_buff* skb, struct genl_info* info);
 int handle_recv_mode_change_msg(struct sk_buff* skb, struct genl_info* info);
@@ -31,15 +31,24 @@ int send_rule_list_to_user(const char* black_buf,
                            int white_len,
                            struct genl_info* info);
 
-int send_msg_to_user(const char* msg_buf,
-                     int msg_len,
-                     struct genl_info* info,
-                     int cmd);
+int reply_msg_to_user(const char* msg_buf,
+                      int msg_len,
+                      struct genl_info* info,
+                      int cmd,
+                      int attr);
+
+int notify_user_event(const char* msg_buf,
+                      int msg_len,
+                      u32 portid,
+                      int cmd,
+                      int attr);
 
 extern const struct nla_policy my_policy[__ATTR_MAX + 1];
 
 extern const struct genl_ops my_ops[];
 
 extern struct genl_family my_family;
+
+extern uint32_t user_portid;
 
 #endif

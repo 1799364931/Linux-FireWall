@@ -27,7 +27,7 @@ int handle_recv_add_rate_limit_msg(struct sk_buff* skb, struct genl_info* info) 
         return -EINVAL;
     }
     
-    int buf_len = nla_len(info->attrs[ATTR_BUF]);
+    // int buf_len = nla_len(info->attrs[ATTR_BUF]);
     // printk(KERN_INFO "Received buffer length: %d bytes\n", buf_len);
     // printk(KERN_INFO "Expected length: %lu bytes\n", sizeof(struct rate_limit_entry_msg));
     
@@ -52,8 +52,8 @@ int handle_recv_add_rate_limit_msg(struct sk_buff* skb, struct genl_info* info) 
     if (!rule) {
         reply_msg = kmalloc(RATE_REPLY_MSG_SIZE, GFP_KERNEL);
         sprintf(reply_msg, "add rate limit rule failed: memory error");
-        send_msg_to_user(reply_msg, RATE_REPLY_MSG_SIZE, info, 
-                        CMD_ADD_RATE_LIMIT_REPLY);
+        reply_msg_to_user(reply_msg, RATE_REPLY_MSG_SIZE, info, 
+                        CMD_ADD_RATE_LIMIT_REPLY,ATTR_BUF);
         kfree(reply_msg);
         return -ENOMEM;
     }
@@ -62,8 +62,8 @@ int handle_recv_add_rate_limit_msg(struct sk_buff* skb, struct genl_info* info) 
     if (!add_rate_limit_rule(rule)) {
         reply_msg = kmalloc(RATE_REPLY_MSG_SIZE, GFP_KERNEL);
         sprintf(reply_msg, "add rate limit rule failed: already exists");
-        send_msg_to_user(reply_msg, RATE_REPLY_MSG_SIZE, info,
-                        CMD_ADD_RATE_LIMIT_REPLY);
+        reply_msg_to_user(reply_msg, RATE_REPLY_MSG_SIZE, info,
+                        CMD_ADD_RATE_LIMIT_REPLY,ATTR_BUF);
         kfree(reply_msg);
         destroy_rate_limit_rule(rule);
         return -EEXIST;
@@ -71,7 +71,7 @@ int handle_recv_add_rate_limit_msg(struct sk_buff* skb, struct genl_info* info) 
     
     reply_msg = kmalloc(RATE_REPLY_MSG_SIZE, GFP_KERNEL);
     sprintf(reply_msg, "add rate limit rule success, rule_id=%u", rule->rule_id);
-    send_msg_to_user(reply_msg, RATE_REPLY_MSG_SIZE, info, CMD_ADD_RATE_LIMIT_REPLY);
+    reply_msg_to_user(reply_msg, RATE_REPLY_MSG_SIZE, info, CMD_ADD_RATE_LIMIT_REPLY,ATTR_BUF);
     kfree(reply_msg);
     
     return 0;
@@ -104,7 +104,7 @@ int handle_recv_del_rate_limit_msg(struct sk_buff* skb, struct genl_info* info) 
         sprintf(reply_msg, "delete rate limit rule failed: rule not found");
     }
     
-    send_msg_to_user(reply_msg, RATE_REPLY_MSG_SIZE, info, CMD_DEL_RATE_LIMIT_REPLY);
+    reply_msg_to_user(reply_msg, RATE_REPLY_MSG_SIZE, info, CMD_DEL_RATE_LIMIT_REPLY,ATTR_BUF);
     kfree(reply_msg);
     
     return success ? 0 : -ENOENT;
@@ -199,8 +199,8 @@ int handle_recv_reset_rate_limit_stats_msg(struct sk_buff* skb,
         sprintf(reply_msg, "reset rate limit stats failed: rule not found");
     }
     
-    send_msg_to_user(reply_msg, RATE_REPLY_MSG_SIZE, info, 
-                    CMD_RESET_RATE_LIMIT_STATS_REPLY);
+    reply_msg_to_user(reply_msg, RATE_REPLY_MSG_SIZE, info, 
+                    CMD_RESET_RATE_LIMIT_STATS_REPLY,ATTR_BUF);
     kfree(reply_msg);
     
     return rule ? 0 : -ENOENT;
@@ -218,7 +218,7 @@ int handle_recv_add_rule_msg(struct sk_buff* skb, struct genl_info* info) {
     char* reply_msg = kmalloc(REPLY_MSG_SIZE, GFP_KERNEL);
     sprintf(reply_msg, "add rule success");
 
-    send_msg_to_user(reply_msg, REPLY_MSG_SIZE, info, CMD_ADD_RULE_REPLY);
+    reply_msg_to_user(reply_msg, REPLY_MSG_SIZE, info, CMD_ADD_RULE_REPLY,ATTR_BUF);
 
     kfree(reply_msg);
     return 0;
@@ -246,7 +246,7 @@ int handle_recv_mode_change_msg(struct sk_buff* skb, struct genl_info* info) {
         sprintf(reply_msg, "change to while list mode fail,unexcept arg");
     }
 
-    send_msg_to_user(reply_msg, REPLY_MSG_SIZE, info, CMD_CHANGE_MOD_REPLY);
+    reply_msg_to_user(reply_msg, REPLY_MSG_SIZE, info, CMD_CHANGE_MOD_REPLY,ATTR_BUF);
 
     kfree(reply_msg);
     return 0;
@@ -265,7 +265,7 @@ int handle_recv_del_rule_msg(struct sk_buff* skb, struct genl_info* info) {
 
     sprintf(reply_msg, "del rule success");
 
-    send_msg_to_user(reply_msg, REPLY_MSG_SIZE, info, CMD_DEL_RULE_REPLY);
+    reply_msg_to_user(reply_msg, REPLY_MSG_SIZE, info, CMD_DEL_RULE_REPLY,ATTR_BUF);
 
     kfree(reply_msg);
     return 0;
@@ -286,6 +286,18 @@ int handle_recv_list_rule_msg(struct sk_buff* skb, struct genl_info* info) {
 
     kfree(msg_buffer_black);
     kfree(msg_buffer_white);
+
+    return 0;
+}
+
+// 注册用户态的portid
+int handle_recv_logging_register(struct sk_buff* skb, struct genl_info* info) {
+    if (!info->attrs[ATTR_BUF]) {
+        pr_err("netlink: missing buffer attribute\n");
+        return -EINVAL;
+    }
+
+    user_portid = info->snd_portid;
 
     return 0;
 }
@@ -326,10 +338,10 @@ int send_rule_list_to_user(const char* black_buf,
     return genlmsg_unicast(genl_info_net(info), skb, info->snd_portid);
 }
 
-int send_msg_to_user(const char* msg_buf,
+int reply_msg_to_user(const char* msg_buf,
                       int msg_len,
                       struct genl_info* info,
-                      int cmd) {
+                      int cmd,int attr) {
     struct sk_buff* skb;
     void* hdr;
 
@@ -344,7 +356,7 @@ int send_msg_to_user(const char* msg_buf,
         return -ENOMEM;
     }
 
-    if (nla_put(skb, ATTR_BUF, msg_len, msg_buf)) {
+    if (nla_put(skb, attr, msg_len, msg_buf)) {
         nlmsg_free(skb);
         return -EMSGSIZE;
     }
@@ -353,6 +365,35 @@ int send_msg_to_user(const char* msg_buf,
 
     return genlmsg_unicast(genl_info_net(info), skb, info->snd_portid);
 }
+
+int notify_user_event(const char *msg_buf, int msg_len, u32 portid, int cmd,int attr)
+{
+    struct sk_buff *skb;
+    void *hdr;
+
+    skb = genlmsg_new(NLMSG_GOODSIZE, GFP_KERNEL);
+    if (!skb)
+        return -ENOMEM;
+
+    hdr = genlmsg_put(skb, 0, 0, &my_family, 0, cmd);
+    if (!hdr) {
+        nlmsg_free(skb);
+        return -ENOMEM;
+    }
+
+    if (nla_put(skb, attr, msg_len, msg_buf)) {
+        nlmsg_free(skb);
+        return -EMSGSIZE;
+    }
+
+    genlmsg_end(skb, hdr);
+
+    return genlmsg_unicast(&init_net, skb, portid);
+}
+
+
+
+uint32_t user_portid = 0; // 
 
 const struct nla_policy my_policy[__ATTR_MAX + 1] = {
     [ATTR_BUF] = {.type = NLA_BINARY},  // 定义为二进制数据
@@ -410,6 +451,13 @@ const struct genl_ops my_ops[] = {
         .policy = my_policy,
         .doit = handle_recv_reset_rate_limit_stats_msg,
     },
+    //
+    {
+        .cmd = CMD_LOGGING_REGISTER,
+        .flags = 0,
+        .policy = my_policy,
+        .doit = handle_recv_logging_register,
+    }
 };
 
 struct genl_family my_family = {
