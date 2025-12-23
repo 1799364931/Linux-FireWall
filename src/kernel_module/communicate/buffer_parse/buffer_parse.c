@@ -195,21 +195,21 @@ uint32_t build_rule_list_msg(char** target_buffer_ptr,
                     uint32_t t_ip = htonl(pos->conditions[i].src_mask_ip);
                     written +=
                         scnprintf(ptr + written, RULE_MSG_SIZE - written,
-                                  "src_ip=%pI4 ", &pos->conditions[i].src_mask_ip);
+                                  "src_ip_mask=%pI4 ", &pos->conditions[i].src_mask_ip);
                     break;
                 }
                 case RULE_DST_IP: {
                     uint32_t t_ip = htonl(pos->conditions[i].dst_ip);
                     written +=
                         scnprintf(ptr + written, RULE_MSG_SIZE - written,
-                                  "src_ip=%pI4 ", &pos->conditions[i].dst_ip);
+                                  "dst_ip=%pI4 ", &pos->conditions[i].dst_ip);
                     break;
                 }
                 case RULE_DST_IP_MASK: {
                     uint32_t t_ip = htonl(pos->conditions[i].dst_mask_ip);
                     written +=
                         scnprintf(ptr + written, RULE_MSG_SIZE - written,
-                                  "src_ip=%pI4 ", &pos->conditions[i].dst_mask_ip);
+                                  "dst_ip_mask=%pI4 ", &pos->conditions[i].dst_mask_ip);
                     break;
                 }
                 case RULE_SRC_PORT: {
@@ -287,13 +287,13 @@ uint32_t build_rule_list_msg(char** target_buffer_ptr,
                 }
                 case RULE_STATE_POLICY_DENY_ALL_NEW: {
                     written += scnprintf(ptr + written, RULE_MSG_SIZE - written,
-                                         "state-filte=true");
+                                         "state_filte=true ");
                     break;
                 }
                 case RULE_INTERFACE: {
                     written +=
                         scnprintf(ptr + written, RULE_MSG_SIZE - written,
-                                  "dst_mac=%s ", pos->conditions[i].interface);
+                                  "interface=%s ", pos->conditions[i].interface);
                     break;
                 }
             }
