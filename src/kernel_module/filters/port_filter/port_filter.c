@@ -1,4 +1,5 @@
 #include "port_filter.h"
+#include "../rule_match_logging/rule_match_logging.h"  // 添加此行
 
 #define RULE_PORT_FILTER RULE_DST_PORT | RULE_SRC_PORT
 
@@ -10,20 +11,16 @@ unsigned int port_filter_hook(void* priv,
     struct udphdr* udph;
     __be16 src_port;
     __be16 dst_port;
-
     if (!skb)
         return NF_ACCEPT;
-
     iph = ip_hdr(skb);
     if (!iph)
         return NF_ACCEPT;
-
     tcph = tcp_hdr(skb);
     udph = udp_hdr(skb);
     if (!tcph && !udph) {
         return NF_ACCEPT;
     }
-
     if (tcph) {
         src_port = tcph->source;
         dst_port = tcph->dest;
@@ -31,7 +28,6 @@ unsigned int port_filter_hook(void* priv,
         src_port = udph->source;
         dst_port = udph->dest;
     }
-
     struct rule_list* rule_list = get_rule_list(
         ENABLE_BLACK_LIST(skb) ? RULE_LIST_BLACK : RULE_LIST_WHITE);
     struct rule_list_node* mov;
@@ -49,8 +45,6 @@ unsigned int port_filter_hook(void* priv,
                     case RULE_DST_PORT: {
                         if (dst_port == mov->conditions[i].dst_port) {
                             SKB_RULE_BITMAP(skb) |= RULE_DST_PORT;
-                            printk(KERN_INFO "%lld %lld", mov->rule_bitmap,
-                                   SKB_RULE_BITMAP(skb));
                         }
                         break;
                     }
@@ -60,9 +54,9 @@ unsigned int port_filter_hook(void* priv,
             }
         }
         if (ENABLE_BLACK_LIST(skb) && mov->rule_bitmap == SKB_RULE_BITMAP(skb)) {
+            log_rule_match(mov->rule_id, mov, skb, "DROP");
             return NF_DROP;
         }
     }
-
     return NF_ACCEPT;
 }

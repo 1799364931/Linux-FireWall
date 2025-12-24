@@ -12,6 +12,8 @@
 #include <linux/netfilter_ipv4.h>
 #include <linux/time64.h>
 #include <linux/timekeeping.h>
+#include "../../rule/rule.h"
+#include "../../communicate/netlink_module/netlink_module.h"
 
 // 定义日志记录的最大长度
 #define LOG_BUFFER_SIZE 512
@@ -40,31 +42,31 @@ void get_current_timestamp(char* timestamp_buf, size_t buf_size);
 /**
  * 解析和记录 TCP 数据包
  */
-static inline void log_tcp_packet(struct iphdr* iph, struct tcphdr* tcph);
+// static inline void log_tcp_packet(struct iphdr* iph, struct tcphdr* tcph);
 
-/**
- * 解析和记录 UDP 数据包
- */
-static inline void log_udp_packet(struct iphdr* iph, struct udphdr* udph);
+// /**
+//  * 解析和记录 UDP 数据包
+//  */
+// static inline void log_udp_packet(struct iphdr* iph, struct udphdr* udph);
 
-/**
- * 解析和记录 ICMP 数据包
- */
-static inline void log_icmp_packet(struct iphdr* iph, struct icmphdr* icmph);
+// /**
+//  * 解析和记录 ICMP 数据包
+//  */
+// static inline void log_icmp_packet(struct iphdr* iph, struct icmphdr* icmph);
 
-/**
- * 解析和记录 ARP 数据包
- */
-static inline void log_arp_packet(struct sk_buff* skb);
+// /**
+//  * 解析和记录 ARP 数据包
+//  */
+// static inline void log_arp_packet(struct sk_buff* skb);
 
-/**
- * 将 IP 地址转换为点分十进制字符串
- */
-static inline void ip_to_string(uint32_t ip, char* str);
+// /**
+//  * 将 IP 地址转换为点分十进制字符串
+//  */
+// static inline void ip_to_string(uint32_t ip, char* str);
 
-/**
- * 获取 TCP 标志位的字符串表示
- */
-static inline void get_tcp_flags_string(uint8_t flags, char* flags_str);
+// /**
+//  * 获取 TCP 标志位的字符串表示
+//  */
+// static inline void get_tcp_flags_string(uint8_t flags, char* flags_str);
 
 #endif /* _LOGGING_FILTER_H */

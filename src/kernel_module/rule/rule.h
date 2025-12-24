@@ -30,6 +30,7 @@ struct match_condition {
         char* interface;
         struct content_rule_list* content_list;
         struct time_rule_list* time_list;
+        // rate_limit_rule_msg
     };
 };
 
