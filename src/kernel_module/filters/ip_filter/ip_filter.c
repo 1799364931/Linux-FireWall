@@ -30,7 +30,7 @@ unsigned int ip_filter_hook(void* priv,
             ? (ENABLE_BLACK_LIST(skb) ? RULE_LIST_BLACK : RULE_LIST_WHITE)
             : (ENABLE_BLACK_LIST(skb) ? RULE_LIST_BLACK_OUTPUT
                                       : RULE_LIST_WHITE_OUTPUT));
-                                      
+
     struct rule_list_node* mov;
     list_for_each_entry(mov, &rule_list->nodes, list) {
         // 判断是否有IP相关的 过滤规则
@@ -70,7 +70,8 @@ unsigned int ip_filter_hook(void* priv,
             }
         }
         if (ENABLE_BLACK_LIST(skb) &&
-            mov->rule_bitmap == SKB_RULE_BITMAP(skb)) {
+            ((mov->rule_bitmap | SKB_RULE_BITMAP(skb)) ==
+             SKB_RULE_BITMAP(skb))) {
             // 添加规则匹配日志
             log_rule_match(mov->rule_id, mov, skb, "DROP");
             return NF_DROP;

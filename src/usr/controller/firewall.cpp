@@ -46,6 +46,9 @@ int main(int argc, char* argv[]) {
         check_ret(ret);
     } else if (parser.get_parser().exist("mode")) {
         auto mode = parser.get_parser().get<std::string>("mode");
+        if (parser.get_parser().exist("out")) {
+            mode += "out";
+        }
         ret = netlink_tool.send_buffer(mode.data(), mode.length(),
                                        CMD_CHANGE_MOD, ATTR_BUF);
         check_ret(ret);

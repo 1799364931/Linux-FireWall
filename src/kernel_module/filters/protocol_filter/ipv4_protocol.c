@@ -1,5 +1,5 @@
-#include "protocol.h"
 #include "../rule_match_logging/rule_match_logging.h"  // 添加此行
+#include "protocol.h"
 
 #define RULE_PROTOCOL_FILTER RULE_IPV4_PROTOCOL
 
@@ -36,7 +36,9 @@ unsigned int ipv4_protocol_filter_hook(void* priv,
                 }
             }
         }
-        if (ENABLE_BLACK_LIST(skb) && mov->rule_bitmap == SKB_RULE_BITMAP(skb)) {
+        if (ENABLE_BLACK_LIST(skb) &&
+            ((mov->rule_bitmap | SKB_RULE_BITMAP(skb)) ==
+             SKB_RULE_BITMAP(skb))) {
             log_rule_match(mov->rule_id, mov, skb, "DROP");
             return NF_DROP;
         }

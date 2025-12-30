@@ -18,30 +18,30 @@ int handle_recv_add_rate_limit_msg(struct sk_buff* skb,
     struct rate_limit_entry_msg* entry;
     struct rate_limit_rule* rule;
     char* reply_msg;
-    
+
     if (!info->attrs[ATTR_BUF]) {
         printk(KERN_ERR "netlink: missing buffer attribute\n");
         pr_err("netlink: missing buffer attribute\n");
         return -EINVAL;
     }
-    
+
     entry = (struct rate_limit_entry_msg*)nla_data(info->attrs[ATTR_BUF]);
-    
+
     printk(KERN_INFO "rate_limiter: received add rule request\n");
-    printk(KERN_INFO "  rate=%u pps, max_tokens=%u\n",
-           entry->refill_rate, entry->max_tokens);
-    printk(KERN_INFO "  src_ip=0x%x, dst_ip=0x%x\n",
-           entry->src_ip, entry->dst_ip);
+    printk(KERN_INFO "  rate=%u pps, max_tokens=%u\n", entry->refill_rate,
+           entry->max_tokens);
+    printk(KERN_INFO "  src_ip=0x%x, dst_ip=0x%x\n", entry->src_ip,
+           entry->dst_ip);
     printk(KERN_INFO "  src_port=%hu, dst_port=%hu, priority=%u\n",
            ntohs(entry->src_port), ntohs(entry->dst_port), entry->priority);
-    printk(KERN_INFO "  direction=%s\n",  /* ← 新增日志 */
+    printk(KERN_INFO "  direction=%s\n", /* ← 新增日志 */
            entry->direction == 0 ? "INBOUND" : "OUTBOUND");
-    
+
     /* 创建新的限速规则 - 传入direction参数 */
     rule = create_rate_limit_rule(entry->refill_rate, entry->max_tokens,
                                   entry->src_ip, entry->dst_ip, entry->src_port,
                                   entry->dst_port, entry->priority,
-                                  entry->direction);  /* ← 新增参数 */
+                                  entry->direction); /* ← 新增参数 */
     if (!rule) {
         reply_msg = kmalloc(RATE_REPLY_MSG_SIZE, GFP_KERNEL);
         sprintf(reply_msg, "add rate limit rule failed: memory error");
@@ -50,7 +50,7 @@ int handle_recv_add_rate_limit_msg(struct sk_buff* skb,
         kfree(reply_msg);
         return -ENOMEM;
     }
-    
+
     /* 添加规则到列表 */
     if (!add_rate_limit_rule(rule)) {
         reply_msg = kmalloc(RATE_REPLY_MSG_SIZE, GFP_KERNEL);
@@ -61,7 +61,7 @@ int handle_recv_add_rate_limit_msg(struct sk_buff* skb,
         destroy_rate_limit_rule(rule);
         return -EEXIST;
     }
-    
+
     reply_msg = kmalloc(RATE_REPLY_MSG_SIZE, GFP_KERNEL);
     sprintf(reply_msg, "add rate limit rule success, rule_id=%u",
             rule->rule_id);
@@ -232,17 +232,28 @@ int handle_recv_mode_change_msg(struct sk_buff* skb, struct genl_info* info) {
     }
 
     const void* buf = nla_data(info->attrs[ATTR_BUF]);
-
+    int len = nla_len(info->attrs[ATTR_BUF]);
     char mode = *((char*)buf);
 
     char* reply_msg = kmalloc(REPLY_MSG_SIZE, GFP_KERNEL);
 
     if (mode == 'w' || mode == 'W') {
-        BLACK_LIST_ENABLE_INPUT = false;
-        sprintf(reply_msg, "change to while list mode success");
+        if (len > 1) {
+            BLACK_LIST_ENABLE_INPUT = false;
+            sprintf(reply_msg, "change to while list mode out success");
+        } else {
+            BLACK_LIST_ENABLE_INPUT = false;
+            sprintf(reply_msg, "change to while list mode in success");
+        }
+
     } else if (mode == 'b' || mode == 'B') {
-        printk(KERN_INFO "change to black list mode");
-        sprintf(reply_msg, "change to while list mode success");
+        if (len > 1) {
+            BLACK_LIST_ENABLE_INPUT = true;
+            sprintf(reply_msg, "change to black list mode out success");
+        } else {
+            BLACK_LIST_ENABLE_INPUT = true;
+            sprintf(reply_msg, "change to black list mode in success");
+        }
     } else {
         sprintf(reply_msg, "change to while list mode fail,unexcept arg");
     }
@@ -426,13 +437,12 @@ int notify_user_event(const char* msg_buf,
 
 uint32_t user_portid = 0;  //
 
-const struct nla_policy my_policy[__ATTR_MAX + 1] =
-    {
-        [ATTR_BUF] = {.type = NLA_BINARY},  // 定义为二进制数据
-        [ATTR_BLACK_LIST] = {.type = NLA_STRING},
-        [ATTR_WHITE_LIST] = {.type = NLA_STRING},
-        [ATTR_BLACK_LIST_OUTPUT] = {.type = NLA_STRING},
-        [ATTR_WHITE_LIST_OUTPUT] = {.type = NLA_STRING},
+const struct nla_policy my_policy[__ATTR_MAX + 1] = {
+    [ATTR_BUF] = {.type = NLA_BINARY},  // 定义为二进制数据
+    [ATTR_BLACK_LIST] = {.type = NLA_STRING},
+    [ATTR_WHITE_LIST] = {.type = NLA_STRING},
+    [ATTR_BLACK_LIST_OUTPUT] = {.type = NLA_STRING},
+    [ATTR_WHITE_LIST_OUTPUT] = {.type = NLA_STRING},
 };
 
 /// ---------- 命令表 ----------
