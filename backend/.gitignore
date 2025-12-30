@@ -1,0 +1,30 @@
+# 1. 敏感的环境变量文件（必须忽略）
+.env
+
+# 2. Python虚拟环境文件夹（你的虚拟环境名称是firewall，对应忽略）
+firewall/
+
+# 3. Python编译产物（自动生成的字节码文件）
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.whl
+
+# 4. Python的日志文件（如果后续项目添加了日志功能，会生成这类文件）
+*.log
+logs/
+
+# 5. 开发工具配置（比如VS Code的本地配置）
+.vscode/
+.idea/  
+# PyCharm的配置文件（如果用了的话）
+
+# 6. 操作系统的临时文件
+.DS_Store  # MacOS
+Thumbs.db  # Windows
+
+# 7. 虚拟环境的备选名称（防止你后续改了虚拟环境名，可留可删）
+venv/
+env/
+backend-env/

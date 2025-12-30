@@ -43,7 +43,7 @@ int main() {
             for (auto& log : logs) {
                 std::cout << log << std::endl;
             }
-            std::this_thread::sleep_for(std::chrono::seconds(10));
+            std::this_thread::sleep_for(std::chrono::seconds(1));
         }
     });
 
