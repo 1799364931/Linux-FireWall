@@ -29,6 +29,8 @@ enum {
     ATTR_BUF,
     ATTR_BLACK_LIST,
     ATTR_WHITE_LIST,
+    ATTR_BLACK_LIST_OUTPUT,
+    ATTR_WHITE_LIST_OUTPUT,
     
     /* 新增：Rate Limiter 属性 */
     ATTR_RATE_LIMIT_LIST,

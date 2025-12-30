@@ -29,6 +29,10 @@ int send_rule_list_to_user(const char* black_buf,
                            int black_len,
                            const char* white_buf,
                            int white_len,
+                           const char* black_buf_out,
+                           int black_out_len,
+                           const char* white_buf_out,
+                           int white_out_len,
                            struct genl_info* info);
 
 int reply_msg_to_user(const char* msg_buf,

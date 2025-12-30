@@ -14,8 +14,12 @@ unsigned int interface_filter_hook(void* priv,
     if (!dev) {
         return NF_ACCEPT;
     }
+
     struct rule_list* rule_list = get_rule_list(
-        ENABLE_BLACK_LIST(skb) ? RULE_LIST_BLACK : RULE_LIST_WHITE);
+        state->hook == NF_INET_LOCAL_IN
+            ? (ENABLE_BLACK_LIST(skb) ? RULE_LIST_BLACK : RULE_LIST_WHITE)
+            : (ENABLE_BLACK_LIST(skb) ? RULE_LIST_BLACK_OUTPUT
+                                      : RULE_LIST_WHITE_OUTPUT));
     struct rule_list_node* mov;
     //* 最后流入的hook需要判断白名单是否需要drop
     list_for_each_entry(mov, &rule_list->nodes, list) {

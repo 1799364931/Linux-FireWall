@@ -76,14 +76,28 @@ int netlink_tool::recv_msg(struct nl_msg* msg, void* arg) {
             if (attrs[ATTR_BLACK_LIST]) {
                 const char* buf = (const char*)nla_data(attrs[ATTR_BLACK_LIST]);
                 int len = nla_len(attrs[ATTR_BLACK_LIST]);
-                std::cout << "Kernel notify (BLACK):\n"
+                std::cout << "BLACK_LIST_IN:\n"
                           << std::string(buf, len) << std::endl;
             }
             // 白名单属性
             if (attrs[ATTR_WHITE_LIST]) {
                 const char* buf = (const char*)nla_data(attrs[ATTR_WHITE_LIST]);
                 int len = nla_len(attrs[ATTR_WHITE_LIST]);
-                std::cout << "Kernel notify (WHITE):\n"
+                std::cout << "WHITE_LIST_IN:\n"
+                          << std::string(buf, len) << std::endl;
+            }
+            //出站规则
+            if (attrs[ATTR_BLACK_LIST_OUTPUT]) {
+                const char* buf = (const char*)nla_data(attrs[ATTR_BLACK_LIST_OUTPUT]);
+                int len = nla_len(attrs[ATTR_BLACK_LIST_OUTPUT]);
+                std::cout << "BLACK_LIST_OUT:\n"
+                          << std::string(buf, len) << std::endl;
+            }
+            // 白名单属性
+            if (attrs[ATTR_WHITE_LIST_OUTPUT]) {
+                const char* buf = (const char*)nla_data(attrs[ATTR_WHITE_LIST_OUTPUT]);
+                int len = nla_len(attrs[ATTR_WHITE_LIST_OUTPUT]);
+                std::cout << "WHITE_LIST_OUT:\n"
                           << std::string(buf, len) << std::endl;
             }
             break;

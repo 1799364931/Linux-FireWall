@@ -150,18 +150,17 @@ void parse_buffer(const char* msg_buffer_start_ptr) {
         }
     }
 
-    //* 这里考虑拆分一下逻辑 不要在序列化里面做添加节点的操作
-    if (node->rule_bitmap & RULE_BLACK) {
-        mutex_lock(&black_list_lock);
-        list_add(&node->list, &get_rule_list(RULE_LIST_BLACK)->nodes);
-        get_rule_list(RULE_LIST_BLACK)->rule_count++;
-        mutex_unlock(&black_list_lock);
-    } else {
-        mutex_lock(&white_list_lock);
-        list_add(&node->list, &get_rule_list(RULE_LIST_WHITE)->nodes);
-        get_rule_list(RULE_LIST_WHITE)->rule_count++;
-        mutex_unlock(&white_list_lock);
-    }
+    enum rule_list_type list_type =
+        entry->local_in
+            ? ((node->rule_bitmap & RULE_BLACK) ? RULE_LIST_BLACK
+                                                : RULE_LIST_WHITE)
+            : ((node->rule_bitmap & RULE_BLACK) ? RULE_LIST_BLACK_OUTPUT
+                                                : RULE_LIST_WHITE_OUTPUT);
+
+    lock_list(list_type);
+    list_add(&node->list, &get_rule_list(list_type)->nodes);
+    get_rule_list(list_type)->rule_count++;
+    unlock_list(list_type);
 };
 
 // 返回空间大小
@@ -191,9 +190,9 @@ uint32_t build_rule_list_msg(char** target_buffer_ptr,
                     break;
                 }
                 case RULE_SRC_IP_MASK: {
-                    written +=
-                        scnprintf(ptr + written, RULE_MSG_SIZE - written,
-                                  "src_ip_mask=%pI4 ", &pos->conditions[i].src_mask_ip);
+                    written += scnprintf(ptr + written, RULE_MSG_SIZE - written,
+                                         "src_ip_mask=%pI4 ",
+                                         &pos->conditions[i].src_mask_ip);
                     break;
                 }
                 case RULE_DST_IP: {
@@ -203,9 +202,9 @@ uint32_t build_rule_list_msg(char** target_buffer_ptr,
                     break;
                 }
                 case RULE_DST_IP_MASK: {
-                    written +=
-                        scnprintf(ptr + written, RULE_MSG_SIZE - written,
-                                  "dst_ip_mask=%pI4 ", &pos->conditions[i].dst_mask_ip);
+                    written += scnprintf(ptr + written, RULE_MSG_SIZE - written,
+                                         "dst_ip_mask=%pI4 ",
+                                         &pos->conditions[i].dst_mask_ip);
                     break;
                 }
                 case RULE_SRC_PORT: {
@@ -260,8 +259,8 @@ uint32_t build_rule_list_msg(char** target_buffer_ptr,
                         rule, tmp, &pos->conditions[i].time_list->head, list) {
                         written += scnprintf(
                             ptr + written, RULE_MSG_SIZE - written,
-                            "|%02u:%02u-%02u:%02u| ", rule->start_hour, rule->start_min,
-                            rule->end_hour, rule->end_min);
+                            "|%02u:%02u-%02u:%02u| ", rule->start_hour,
+                            rule->start_min, rule->end_hour, rule->end_min);
                     }
 
                     break;
@@ -275,8 +274,8 @@ uint32_t build_rule_list_msg(char** target_buffer_ptr,
                         rule, tmp, &pos->conditions[i].time_list->head, list) {
                         written += scnprintf(
                             ptr + written, RULE_MSG_SIZE - written,
-                            "|%02u:%02u-%02u:%02u| ", rule->start_hour, rule->start_min,
-                            rule->end_hour, rule->end_min);
+                            "|%02u:%02u-%02u:%02u| ", rule->start_hour,
+                            rule->start_min, rule->end_hour, rule->end_min);
                     }
 
                     break;
@@ -287,9 +286,9 @@ uint32_t build_rule_list_msg(char** target_buffer_ptr,
                     break;
                 }
                 case RULE_INTERFACE: {
-                    written +=
-                        scnprintf(ptr + written, RULE_MSG_SIZE - written,
-                                  "interface=%s ", pos->conditions[i].interface);
+                    written += scnprintf(ptr + written, RULE_MSG_SIZE - written,
+                                         "interface=%s ",
+                                         pos->conditions[i].interface);
                     break;
                 }
             }
@@ -306,15 +305,12 @@ void del_parse_buffer(const char* msg_buffer_start_ptr) {
     uint32_t del_cnt = *((uint32_t*)ptr);
     ptr += 1;
 
-    struct rule_list* black_list = get_rule_list(RULE_LIST_BLACK);
-    struct rule_list* white_list = get_rule_list(RULE_LIST_WHITE);
     for (int i = 0; i < del_cnt; i++) {
         uint32_t del_rule_id = *ptr;
-        if (del_rule(del_rule_id, black_list) ||
-            del_rule(del_rule_id, white_list)) {
-            // 删除成功
-
-            continue;
+        for (int j = 0; j < LIST_COUNT; ++j) {
+            if (del_rule(del_rule_id, get_rule_list(j))) {
+                break;
+            }
         }
     }
 }

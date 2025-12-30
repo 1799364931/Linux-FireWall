@@ -11,7 +11,7 @@
 #include "../../public_structs/rule_bitmap.h"
 #include "../filters/content_filter/content_filter_list/content_filter_list.h"
 #include "../filters/time_filter/time_filter_list/time_filter_list.h"
-
+#define LIST_COUNT 4
 // 不要复用
 
 struct match_condition {
@@ -45,6 +45,8 @@ struct rule_list_node {
 enum rule_list_type {
     RULE_LIST_WHITE,
     RULE_LIST_BLACK,
+    RULE_LIST_WHITE_OUTPUT,
+    RULE_LIST_BLACK_OUTPUT
 };
 
 struct rule_list {
@@ -53,11 +55,10 @@ struct rule_list {
     struct list_head nodes;  // 链表头
 };
 
-extern struct rule_list* black_list_singleton;
-extern struct rule_list* white_list_singleton;
-extern bool BLACK_LIST_ENABLE;
-extern struct mutex black_list_lock;
-extern struct mutex white_list_lock;
+extern struct rule_list* list_singletons[LIST_COUNT];
+extern struct mutex list_mutexs[LIST_COUNT];
+extern bool BLACK_LIST_ENABLE_INPUT;
+extern bool BLACK_LIST_ENABLE_OUTPUT;
 extern struct mutex rule_id_lock;
 
 extern uint32_t rule_id;
@@ -71,5 +72,11 @@ uint64_t compute_bitmap(uint32_t size, struct match_condition* conditions);
 void release_rule(struct rule_list_node* rule);
 
 bool del_rule(uint32_t del_rule_id, struct rule_list* rule_list);
+
+void init_rule_mutex(void);
+
+void lock_list(enum rule_list_type type);
+
+void unlock_list(enum rule_list_type type);
 
 #endif /* _RULE_H */

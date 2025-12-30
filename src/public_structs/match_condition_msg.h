@@ -37,6 +37,7 @@ struct match_condition_msg {
 };
 
 struct rule_entry_msg {
+    uint32_t local_in;
     uint32_t condition_count;  // 条件数量
     uint64_t bitmap;
     struct match_condition_msg conditions[];
