@@ -29,7 +29,10 @@ unsigned int port_filter_hook(void* priv,
         dst_port = udph->dest;
     }
     struct rule_list* rule_list = get_rule_list(
-        ENABLE_BLACK_LIST(skb) ? RULE_LIST_BLACK : RULE_LIST_WHITE);
+        state->hook == NF_INET_LOCAL_IN
+            ? (ENABLE_BLACK_LIST(skb) ? RULE_LIST_BLACK : RULE_LIST_WHITE)
+            : (ENABLE_BLACK_LIST(skb) ? RULE_LIST_BLACK_OUTPUT
+                                      : RULE_LIST_WHITE_OUTPUT));
     struct rule_list_node* mov;
     list_for_each_entry(mov, &rule_list->nodes, list) {
         // 判断是否有IP相关的 过滤规则
@@ -53,7 +56,8 @@ unsigned int port_filter_hook(void* priv,
                 }
             }
         }
-        if (ENABLE_BLACK_LIST(skb) && mov->rule_bitmap == SKB_RULE_BITMAP(skb)) {
+        if (ENABLE_BLACK_LIST(skb) &&
+            mov->rule_bitmap == SKB_RULE_BITMAP(skb)) {
             log_rule_match(mov->rule_id, mov, skb, "DROP");
             return NF_DROP;
         }

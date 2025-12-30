@@ -23,7 +23,9 @@ unsigned int time_filter_hook(void* priv,
         需要找到所有的接收时间的并集
     */
     if (ENABLE_BLACK_LIST(skb)) {
-        struct rule_list* balck_list = get_rule_list(RULE_LIST_BLACK);
+        struct rule_list* balck_list = get_rule_list(
+            state->hook == NF_INET_LOCAL_IN ? RULE_LIST_BLACK
+                                            : RULE_LIST_BLACK_OUTPUT);
         struct rule_list_node* mov;
         // 黑名单过滤
         list_for_each_entry(mov, &balck_list->nodes, list) {
@@ -68,13 +70,10 @@ unsigned int time_filter_hook(void* priv,
         /* 没有匹配的规则，默认接受 */
         return NF_ACCEPT;
     } else {
-        struct rule_list* white_list = get_rule_list(RULE_LIST_WHITE);
+        struct rule_list* white_list = get_rule_list(
+            state->hook == NF_INET_LOCAL_IN ? RULE_LIST_WHITE
+                                            : RULE_LIST_WHITE_OUTPUT);
         struct rule_list_node* mov;
-        // 白名单
-        /*
-            如果drop
-        
-        */
         list_for_each_entry(mov, &white_list->nodes, list) {
             if (mov->rule_bitmap & (RULE_TIME_ACCEPT | RULE_TIME_DROP)) {
                 for (uint32_t i = 0; i < mov->condition_count; i++) {
@@ -102,8 +101,6 @@ unsigned int time_filter_hook(void* priv,
                             mov->conditions[i].match_type == RULE_TIME_DROP) {
                             SKB_RULE_BITMAP(skb) |= RULE_TIME_DROP;
                         }
-                        // 什么时候才允许通过？
-                        // 
                         if (accept_count &&
                             mov->conditions[i].match_type == RULE_TIME_ACCEPT) {
                             SKB_RULE_BITMAP(skb) |= RULE_TIME_ACCEPT;

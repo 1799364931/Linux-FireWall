@@ -161,6 +161,7 @@ unsigned int rate_limiter_hook(void *priv,
     }
     
     /* 获取规则列表 */
+    
     list = get_rate_limit_list();
     if (!list || list->count == 0)
         return NF_ACCEPT;

@@ -14,7 +14,9 @@ unsigned int state_filter_hook(void* priv,
         return NF_DROP;
     }
     if (ENABLE_BLACK_LIST(skb)) {
-        struct rule_list* black_list = get_rule_list(RULE_LIST_BLACK);
+        struct rule_list* black_list = get_rule_list(
+            state->hook == NF_INET_LOCAL_IN ? RULE_LIST_BLACK
+                                            : RULE_LIST_BLACK_OUTPUT);
         struct rule_list_node* mov;
         list_for_each_entry(mov, &black_list->nodes, list) {
             if (mov->rule_bitmap & RULE_STATE_POLICY_DENY_ALL_NEW) {
@@ -34,7 +36,9 @@ unsigned int state_filter_hook(void* priv,
             }
         }
     } else {
-        struct rule_list* white_list = get_rule_list(RULE_LIST_WHITE);
+        struct rule_list* white_list = get_rule_list(
+            state->hook == NF_INET_LOCAL_IN ? RULE_LIST_WHITE
+                                            : RULE_LIST_WHITE_OUTPUT);
         struct rule_list_node* mov;
         list_for_each_entry(mov, &white_list->nodes, list) {
             if (mov->rule_bitmap & RULE_STATE_POLICY_DENY_ALL_NEW) {

@@ -1,16 +1,13 @@
 #include "rule.h"
 
-struct rule_list* black_list_singleton = NULL;
-struct rule_list* white_list_singleton = NULL;
-bool BLACK_LIST_ENABLE = true;
-struct mutex black_list_lock;
-struct mutex white_list_lock;
+struct rule_list* list_singletons[4] = {NULL, NULL, NULL, NULL};
+bool BLACK_LIST_ENABLE_INPUT = true;
+bool BLACK_LIST_ENABLE_OUTPUT = true;
+struct mutex list_mutexs[4];
 struct mutex rule_id_lock;
 uint32_t rule_id = 0;
 
 DEFINE_MUTEX(rule_id_lock);
-DEFINE_MUTEX(black_list_lock);
-DEFINE_MUTEX(white_list_lock);
 
 uint64_t compute_bitmap(uint32_t size, struct match_condition* conditions) {
     uint64_t bitmap = 0;
@@ -20,14 +17,24 @@ uint64_t compute_bitmap(uint32_t size, struct match_condition* conditions) {
     return bitmap;
 }
 
+void init_rule_mutex() {
+    for (int i = 0; i < LIST_COUNT; i++) {
+        mutex_init(&list_mutexs[i]);
+    }
+}
+
+void lock_list(enum rule_list_type type) {
+    mutex_lock(&list_mutexs[type]);
+}
+
+void unlock_list(enum rule_list_type type) {
+    mutex_unlock(&list_mutexs[type]);
+}
+
 struct rule_list* get_rule_list(enum rule_list_type type) {
     struct rule_list** target;
 
-    if (type == RULE_LIST_BLACK) {
-        target = &black_list_singleton;
-    } else {
-        target = &white_list_singleton;
-    }
+    target = &list_singletons[type];
 
     if (*target == NULL) {
         *target = kzalloc(sizeof(struct rule_list), GFP_KERNEL);
@@ -44,10 +51,11 @@ struct rule_list* get_rule_list(enum rule_list_type type) {
 
 void release_rule_list(struct rule_list* rule_list) {
     struct rule_list_node *pos, *n;
+    if (!rule_list) {
+        return;
+    }
     list_for_each_entry_safe(pos, n, &rule_list->nodes, list) {
-        // todo 释放内存
         list_del(&pos->list);
-        // pos -> match_type -> contents?
         release_rule(pos);
         kfree(pos);
     }

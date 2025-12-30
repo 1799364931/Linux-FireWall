@@ -32,8 +32,12 @@ unsigned int content_filter_hook(void* priv,
     if (!payload) {
         return NF_ACCEPT;  // 非TCP数据包或无负载，放行
     }
+
     struct rule_list* rule_list = get_rule_list(
-        ENABLE_BLACK_LIST(skb) ? RULE_LIST_BLACK : RULE_LIST_WHITE);
+        state->hook == NF_INET_LOCAL_IN
+            ? (ENABLE_BLACK_LIST(skb) ? RULE_LIST_BLACK : RULE_LIST_WHITE)
+            : (ENABLE_BLACK_LIST(skb) ? RULE_LIST_BLACK_OUTPUT
+                                      : RULE_LIST_WHITE_OUTPUT));
     struct rule_list_node* mov;
     list_for_each_entry(mov, &rule_list->nodes, list) {
         if (mov->rule_bitmap & RULE_CONTENT) {
