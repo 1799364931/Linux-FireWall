@@ -19,6 +19,13 @@
             <el-radio label="accept">允许</el-radio>
           </el-radio-group>
         </el-form-item>
+        <!-- 新增：规则方向选择项 -->
+        <el-form-item label="规则方向" prop="direction">
+          <el-radio-group v-model="form.direction">
+            <el-radio label="in">入站（默认）</el-radio>
+            <el-radio label="out">出站</el-radio>
+          </el-radio-group>
+        </el-form-item>
       </el-collapse-item>
 
       <!-- IP/端口设置 -->
@@ -89,7 +96,7 @@
 import { ref, defineEmits, watch, defineProps } from 'vue';
 import { ElMessage } from 'element-plus';
 
-// filterType属性接收父组件的筛选状态
+// filterType属性接收父组件的筛选状态，新增currentDirection属性
 const props = defineProps({
   copyData: {
     type: Object,
@@ -98,6 +105,11 @@ const props = defineProps({
   filterType: {
     type: String,
     default: '全部' 
+  },
+  // 新增：接收父组件传递的出入站筛选状态
+  currentDirection: {
+    type: String,
+    default: '全部'
   }
 });
 
@@ -109,9 +121,10 @@ const activeNames = ref(['1']);
 
 const ruleFormRef = ref(null);
 
-// 表单数据
+// 表单数据（新增direction字段，默认入站'in'）
 const form = ref({
   action: 'drop', // 默认丢弃，必选
+  direction: 'in', // 新增：规则方向，默认入站
   src_ip: '',
   dst_port: '',
   dst_ip: '',
@@ -141,6 +154,20 @@ watch(
   { immediate: true } // 立即执行，初始化时就生效
 );
 
+// 新增：监听currentDirection变化，自动设置规则方向（实现状态跟随）
+watch(
+  () => props.currentDirection,
+  (newDir) => {
+    if (newDir === '入站') {
+      form.value.direction = 'in';
+    } else if (newDir === '出站') {
+      form.value.direction = 'out';
+    }
+    // 全部方向时不修改原有值
+  },
+  { immediate: true } // 立即执行，初始化同步状态
+);
+
 // 监听copyData变化，实现数据回显
 watch(
   () => props.copyData,
@@ -156,9 +183,16 @@ watch(
       } else if (props.filterType === '白名单') {
         copyData.action = 'accept';
       }
-      // 数据类型转换，适配表单绑定
+      // 新增：根据currentDirection强制覆盖复制的规则方向
+      if (props.currentDirection === '入站') {
+        copyData.direction = 'in';
+      } else if (props.currentDirection === '出站') {
+        copyData.direction = 'out';
+      }
+      // 数据类型转换，适配表单绑定（新增direction字段回显）
       form.value = {
         action: copyData.action || 'drop',
+        direction: copyData.direction || 'in', // 已被上面强制覆盖
         src_ip: copyData.src_ip || '',
         dst_ip: copyData.dst_ip || '',
         src_ip_mask: copyData.src_ip_mask || '',
@@ -184,9 +218,27 @@ watch(
   { immediate: true, deep: true } // 立即执行 + 深度监听对象变化
 );
 
-// 校验规则
+// 校验规则（新增direction字段校验）
 const rules = ref({
   action: [{ required: true, message: '请选择动作（丢弃/允许）', trigger: 'change' }],
+  // 新增：规则方向校验
+  direction: [
+    { 
+      required: true, 
+      message: '请选择规则方向（入站/出站）', 
+      trigger: 'change' 
+    },
+    {
+      validator: (rule, value, callback) => {
+        if (value === 'in' || value === 'out') {
+          callback();
+        } else {
+          callback(new Error('规则方向只能是入站（in）或出站（out）'));
+        }
+      },
+      trigger: 'change'
+    }
+  ],
   src_ip: [
     {
       validator: (rule, value, callback) => {
@@ -360,7 +412,7 @@ const onSubmit = () => {
       // 过滤空字段，只保留用户填写的
       const finalData = Object.fromEntries(
         Object.entries(formData).filter(([k, v]) => {
-          if (k === 'action') return true;
+          if (k === 'action' || k === 'direction') return true; // 保留动作和方向字段
           return v !== '' && v !== undefined && v !== null;
         })
       );
@@ -375,10 +427,11 @@ const onSubmit = () => {
   });
 };
 
-// 重置方法
+// 重置方法（新增：跟随currentDirection状态设置方向）
 const reset = () => {
   form.value = {
     action: 'drop',
+    direction: 'in', // 默认值，后续会被currentDirection覆盖
     src_ip: '',
     dst_port: '',
     dst_ip: '',
@@ -398,6 +451,12 @@ const reset = () => {
     form.value.action = 'drop';
   } else if (props.filterType === '白名单') {
     form.value.action = 'accept';
+  }
+  // 新增：重置时根据currentDirection设置方向
+  if (props.currentDirection === '入站') {
+    form.value.direction = 'in';
+  } else if (props.currentDirection === '出站') {
+    form.value.direction = 'out';
   }
   ruleFormRef.value?.clearValidate();
   // 重置折叠面板，只展开基础动作

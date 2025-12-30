@@ -39,6 +39,32 @@
           </el-button>
         </el-button-group>
       </div>
+      <!-- 新增：出入站筛选按钮组 -->
+      <div class="filter-group" style="margin-left: 20px;">
+        <el-button-group>
+          <el-button 
+            @click="currentDirectionFilter = '全部'"
+            :type="currentDirectionFilter === '全部' ? 'primary' : 'default'"
+            size="default"
+          >
+            所有方向
+          </el-button>
+          <el-button 
+            @click="currentDirectionFilter = '入站'"
+            :type="currentDirectionFilter === '入站' ? 'primary' : 'default'"
+            size="default"
+          >
+            入站
+          </el-button>
+          <el-button 
+            @click="currentDirectionFilter = '出站'"
+            :type="currentDirectionFilter === '出站' ? 'primary' : 'default'"
+            size="default"
+          >
+            出站
+          </el-button>
+        </el-button-group>
+      </div>
     </div>
     
     <el-table 
@@ -55,6 +81,18 @@
     >
       <!-- 表格多选列 -->
       <el-table-column type="selection" width="55" />
+
+      <!-- 新增：规则方向列 -->
+      <el-table-column prop="direction" label="规则方向" width="100">
+        <template #default="scope">
+          <el-tag 
+            :type="scope.row.direction === 'in' ? 'info' : 'warning'"
+            class="direction-tag"
+          >
+            {{ formatDirection(scope.row.direction) }}
+          </el-tag>
+        </template>
+      </el-table-column>
 
       <!-- 表格空状态自定义插槽 -->
       <template #empty>
@@ -148,8 +186,14 @@
       class="rule-dialog"
       @close="handleDialogClose"
     >
-      <!-- 传递copyData属性给RuleForm -->
-      <RuleForm ref="ruleFormRef" @submit="submitAdd" :copyData="currentCopyData" :filterType="currentFilter" />
+      <!-- 传递copyData属性给RuleForm：新增currentDirection属性传递 -->
+      <RuleForm 
+        ref="ruleFormRef" 
+        @submit="submitAdd" 
+        :copyData="currentCopyData" 
+        :filterType="currentFilter" 
+        :currentDirection="currentDirectionFilter"
+      />
     </el-dialog>
   </div>
 </template>
@@ -175,6 +219,8 @@ const selectedRows = ref([]);
 const currentCopyData = ref(null);
 // 当前筛选类型（默认“全部”）
 const currentFilter = ref('全部');
+// 新增：出入站筛选变量（默认“全部”）
+const currentDirectionFilter = ref('全部');
 
 onMounted(() => fetchRules());
 
@@ -195,6 +241,8 @@ const fetchRules = () => {
 
 // 根据筛选类型过滤规则
 const filteredRules = computed(() => {
+  // 第一步：先过滤黑白名单
+  let filterByList = [];
   switch (currentFilter.value) {
     case '黑名单':
       // 黑名单对应动作：drop（拒绝）
@@ -204,7 +252,19 @@ const filteredRules = computed(() => {
       return rules.value.filter(rule => rule.action === 'accept');
     case '全部':
     default:
-      return rules.value;
+      filterByList = [...rules.value];
+      break;
+  }
+
+  // 第二步：再过滤出入站方向
+  switch (currentDirectionFilter.value) {
+    case '入站':
+      return filterByList.filter(rule => rule.direction === 'in');
+    case '出站':
+      return filterByList.filter(rule => rule.direction === 'out');
+    case '全部':
+    default:
+      return filterByList;
   }
 });
 
@@ -323,9 +383,16 @@ const formatAction = (action) => {
   return action === 'drop' ? '拒绝' : action === 'accept' ? '允许' : `未知(${action})`;
 };
 
+// 新增：格式化规则方向显示
+const formatDirection = (direction) => {
+  if (!direction) return '未知';
+  return direction === 'in' ? '入站' : direction === 'out' ? '出站' : `未知(${direction})`;
+};
+
 // 格式化字段名
 const formatKey = (key) => {
   const keyMap = {
+    direction: '规则方向', // 新增：方向字段映射
     id: '规则ID',
     src_ip: '源IP',
     dst_ip: '目标IP',
@@ -356,6 +423,9 @@ const protoMap = {
 
 // 格式化字段值
 const formatValue = (key, value) => {
+  if (key === 'direction') {
+    return formatDirection(value);
+  }
   // 处理IP协议号/名称
   if (key === 'proto') {
     if (!value) return '未设置';
@@ -477,6 +547,13 @@ const tableRowClassName = ({ row, rowIndex }) => {
   border-radius: 4px;
   color: #1f2937;
   font-weight: 500;
+}
+
+/* 新增：方向标签样式 */
+.direction-tag {
+  border-radius: 4px;
+  padding: 2px 10px;
+  font-size: 12px;
 }
 
 .action-tag {

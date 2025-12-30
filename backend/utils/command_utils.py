@@ -39,6 +39,7 @@ def parse_rules(output: str) -> List[Dict]:
     output = clean_output(output)
     lines = output.strip().split("\n")
     current_list = "" 
+    current_direction = "in"
 
     # 字段映射：如state_filte→est，time_accept→time_range
     key_mapping = {
@@ -58,12 +59,21 @@ def parse_rules(output: str) -> List[Dict]:
         if not line:
             continue
 
-        # 识别黑白名单标题
-        if "Kernel notify (BLACK)" in line:
+        if line.startswith("BLACK_LIST_IN:"):
             current_list = "black"
+            current_direction = "in"
             continue
-        elif "Kernel notify (WHITE)" in line:
+        elif line.startswith("WHITE_LIST_IN:"):
             current_list = "white"
+            current_direction = "in"
+            continue
+        elif line.startswith("BLACK_LIST_OUT:"):
+            current_list = "black"
+            current_direction = "out"
+            continue
+        elif line.startswith("WHITE_LIST_OUT:"):
+            current_list = "white"
+            current_direction = "out"
             continue
 
         # 匹配规则行（Rule X:）
@@ -76,6 +86,7 @@ def parse_rules(output: str) -> List[Dict]:
         rule_dict = {
             "id": rule_id,
             "list_type": current_list,
+            "direction": current_direction,
             "action": "drop" if current_list == "black" else "accept" if current_list == "white" else "unknown",
             "src_ip": None,
             "dst_ip": None,

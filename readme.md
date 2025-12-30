@@ -57,7 +57,7 @@ sudo insmod myfirewall.ko
 将内核模块加载到系统内核并执行。
 
 最终通过`sudo dmesg`获取内核日志，确认防火墙启动成功。
-![alt text](image.png)
+![alt text](docs/pics/image.png)
 
 #### 2.2.1.2 程序卸载
 
@@ -66,7 +66,7 @@ sudo insmod myfirewall.ko
 sudo rmmod myfirewall.ko
 ```
 将防火墙内核模块进行关闭，可以通过`sudo dmesg`确认关闭成功。
-![alt text](image-2.png)
+![alt text](docs/pics/image-2.png)
 
 ### 2.2.2 防火墙控制程序
 
@@ -76,7 +76,7 @@ sudo rmmod myfirewall.ko
 
 通过`--help`参数，可以获取程序所支持的安全规则与控制方式：
 
-![alt text](image-3.png)
+![alt text](docs/pics/image-3.png)
 
 ### 2.2.3 防火墙日志程序
 防火墙日志程序主要接收内核日志信息并打印到用户态。
@@ -88,7 +88,7 @@ sudo rmmod myfirewall.ko
 ./logger 
 ```
 
-![alt text](image-6.png)
+![alt text](docs/pics/image-6.png)
 
 ### 2.2.4 防火墙后端程序
 
@@ -112,7 +112,7 @@ sudo python3 main.py
 
 # 5.若端口被占用，可修改main.py中最下面的端口配置
 ```
-![alt text](image-7.png)
+![alt text](docs/pics/image-7.png)
 
 ### 2.2.5 防火墙前端程序
 
@@ -131,7 +131,7 @@ npm run dev
 
 #7.若端口被占用，可手动修改前端配置文件（frontend目录下vite.config.js中的port配置项），重启服务
 ```
-![alt text](image-8.png)
+![alt text](docs/pics/image-8.png)
 # 3 使用说明
 
 ## 3.1 命令行使用
@@ -213,7 +213,7 @@ npm run dev
 ```shell
 ./firewall --list
 ```
-![alt text](image-9.png)
+![alt text](docs/pics/image-9.png)
 #### 3.1.3.3 --del
 
 `--del`参数接受一个`rule id`即`--list`返回的`Rule {rule id}`，以删除选中的规则。
@@ -222,7 +222,7 @@ npm run dev
 # 删除Rule 2规则 ，见上图
 ./firewall --del 2
 ```
-![alt text](image-10.png)
+![alt text](docs/pics/image-10.png)
 
 #### 3.1.3.4 --mode
 `--mode` 参数接受一个字符以改变防火墙的名单过滤规则，切换黑/白名单过滤。同时通过`--out`参数判断应该修改
@@ -294,12 +294,63 @@ npm run dev
 
 ## 3.2 前后端页面使用
 
+前后端页面主要分为登陆界面、运行启动界面、规则管理界面和日志界面。
 
+### 3.2.1 登陆界面
+在登陆界面中输入在后端配置的用户和密码即可登陆进入防火墙控制面板。
+![alt text](docs/pics/image-11.png)
+
+### 3.2.2 运行启动界面
+在该页面可以关闭/启动防火墙。
+![alt text](docs/pics/image-12.png)
+
+### 3.2.3 规则管理界面
+在该界面可以选择添加黑名单或白名单规则，同时指定规则应用于出站或入站。
+
+![alt text](docs/pics/image-13.png)
+![alt text](docs/pics/image-14.png)
+
+### 3.2.4 日志界面
+该界面隔一段时间批量读取最新的日志并输出打印。
+![alt text](docs/pics/image-15.png)
 
 ## 4 项目结构
-
+```
+┌---backend # 后端代码
+|
+|---frontend # 前端代码
+|
+|---src
+|    |- kernel_module # 内核模块代码
+|    |      |- comunicate # 通信模块
+|    |      |- filters # 规则过滤函数
+|    |      |- rule # 规则结构管理
+|    |      |- firewall.c # 内核程序入口
+|    |      |_ makefile # 内核程序编译文件
+|    |
+|    |- public_struct # 用户-内核公共结构体
+|    |
+|    |_ usr # 用户态实现代码
+|        |
+|        |- controller # 用户命令行控制器
+|        |       |
+|        |       |- cmd_parser # 命令行解析
+|        |       |- netlink_tool # netlink通信类
+|        |       |_ firewall.cpp # 命令行控制器程序入口
+|        |
+|        |_logger # 用户日志输出程序
+|
+|---test # 发包测试脚本
+|___docs # readme 文档相关图片
+```
 
 
 ## 5 参考资料
 
++ [Netlink官方文档](https://linuxkernel.org.cn/doc/html/latest/userspace-api/netlink/index.html)
++ [Netlink入门手册](https://www.man7.org/linux/man-pages/man7/netlink.7.html)
++ [Netfilter官方文档](https://netfilter.org/documentation/index.html)
++ [IP报文格式大全](https://support.huawei.com/enterprise/zh/doc/EDOC1100174722/f926746c)
++ [vite官方文档](https://vitejs.cn/vite3-cn/guide/)
++ [cmdline命令行库](https://github.com/tanakh/cmdline)
 

@@ -73,6 +73,8 @@ async def add_rule(rule: FirewallRule):
     # 构建命令行参数
     cmd = [FIREWALL_CONTROLLER_CMD, "--add"]
     # 拼接规则参数
+    if rule.direction == "out":
+        cmd.append("--out")
     if rule.src_ip:
         cmd.extend(["--src-ip", rule.src_ip])
     if rule.dst_ip:
@@ -225,7 +227,7 @@ async def start_logger():
     try:
         # 添加bufsize=0禁用缓冲区，实时读取日志
         logger_process = await asyncio.create_subprocess_exec(
-            "sudo", "/home/abcd/Desktop/firewall-project/Linux-FireWall/src/usr/logger/logger",
+            FIREWALL_LOGGER_CMD,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.STDOUT,
             stdin=asyncio.subprocess.PIPE,
