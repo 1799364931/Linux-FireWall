@@ -151,8 +151,8 @@ unsigned int rate_limiter_hook(void *priv,
     uint16_t src_port = 0, dst_port = 0;
     uint8_t traffic_direction;  /*新增：当前数据包的方向 */
     
-    static unsigned long last_print = 0;
-    unsigned long now = get_jiffies_64();
+    // static unsigned long last_print = 0;
+    // unsigned long now = get_jiffies_64();
     
     // // 每秒打印一次（避免日志爆炸）
     // if (time_after(now, last_print + HZ)) {
@@ -185,7 +185,7 @@ unsigned int rate_limiter_hook(void *priv,
         if (!rule->enabled)
             continue;
         
-        /* ← 新增：检查方向是否匹配 */
+        /*  新增：检查方向是否匹配 */
         if (rule->direction != traffic_direction) {
             continue;  /* 方向不匹配，跳过此规则 */
         }

@@ -30,7 +30,9 @@ unsigned int state_filter_hook(void* priv,
                     }
                 }
             }
-            if (mov->rule_bitmap == SKB_RULE_BITMAP(skb)) {
+
+            if (((mov->rule_bitmap | SKB_RULE_BITMAP(skb)) ==
+                 SKB_RULE_BITMAP(skb))) {
                 log_rule_match(mov->rule_id, mov, skb, "DROP");
                 return NF_DROP;
             }
@@ -52,7 +54,8 @@ unsigned int state_filter_hook(void* priv,
                     }
                 }
             }
-            if (mov->rule_bitmap == SKB_RULE_BITMAP(skb)) {
+            if (((mov->rule_bitmap | SKB_RULE_BITMAP(skb)) ==
+                 SKB_RULE_BITMAP(skb))) {
                 log_rule_match(mov->rule_id, mov, skb, "ACCEPT");
                 return NF_ACCEPT;
             }

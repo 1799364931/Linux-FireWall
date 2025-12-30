@@ -33,8 +33,8 @@ unsigned int interface_filter_hook(void* priv,
                 }
             }
         }
-        if (ENABLE_BLACK_LIST(skb) &&
-            mov->rule_bitmap == SKB_RULE_BITMAP(skb)) {
+       if (ENABLE_BLACK_LIST(skb) &&
+            ((mov->rule_bitmap | SKB_RULE_BITMAP(skb)) == SKB_RULE_BITMAP(skb))) {
             log_rule_match(mov->rule_id, mov, skb, "DROP");
             return NF_DROP;
         }
@@ -42,8 +42,8 @@ unsigned int interface_filter_hook(void* priv,
         // 黑名单会打上 tag
         // SKB_RULE_BITMAP(skb) 白名单/黑名单
         // mov->rule_bitmap 标记了黑名单
-        if (!ENABLE_BLACK_LIST(skb) &&
-            mov->rule_bitmap == SKB_RULE_BITMAP(skb)) {
+      if (!ENABLE_BLACK_LIST(skb) &&
+            ((mov->rule_bitmap | SKB_RULE_BITMAP(skb)) == SKB_RULE_BITMAP(skb))) {
             log_rule_match(mov->rule_id, mov, skb, "ACCEPT");
             return NF_ACCEPT;
         }

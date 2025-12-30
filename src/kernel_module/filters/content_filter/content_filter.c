@@ -51,8 +51,9 @@ unsigned int content_filter_hook(void* priv,
                 }
             }
         }
+        
         if (ENABLE_BLACK_LIST(skb) &&
-            mov->rule_bitmap == SKB_RULE_BITMAP(skb)) {
+            ((mov->rule_bitmap | SKB_RULE_BITMAP(skb)) == SKB_RULE_BITMAP(skb))) {
             log_rule_match(mov->rule_id, mov, skb, "DROP");
             return NF_DROP;
         }

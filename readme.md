@@ -190,7 +190,7 @@ npm run dev
 ./firewall --add --src-ip 123.123.123.123 --dst-port 80 --drop
 
 # 过滤流出本机的，目标MAC地址为：00:0c:29:09:f2:b0 协议为：icmp 的数据包
-./firewall --add --src-mac  00:0c:29:09:f2:b0 --proto icmp --drop --out
+./firewall --add --dst-mac  00:0c:29:09:f2:b0 --proto icmp --drop --out
 
 # 在12:00 - 14:00 时间段内丢弃所有源地址为：123.123.123.123 内容负载包含：abcd 或 efg 的数据包
 ./firewall --add --time-drop "12:00 14:00" --src-ip 123.123.123.123 --content ""abcd" "efg"" --drop
@@ -213,30 +213,31 @@ npm run dev
 ```shell
 ./firewall --list
 ```
-
+![alt text](image-9.png)
 #### 3.1.3.3 --del
 
 `--del`参数接受一个`rule id`即`--list`返回的`Rule {rule id}`，以删除选中的规则。
 
 ```shell
-# 删除Rule 0规则 ，见上图
-./firewall --del 0
+# 删除Rule 2规则 ，见上图
+./firewall --del 2
 ```
-![alt text](image-5.png)
+![alt text](image-10.png)
 
 #### 3.1.3.4 --mode
-`--mode` 参数接受一个字符以改变防火墙的名单过滤规则，切换黑/白名单过滤。
+`--mode` 参数接受一个字符以改变防火墙的名单过滤规则，切换黑/白名单过滤。同时通过`--out`参数判断应该修改
+出站还是入站规则的过滤方式。
 
 ```shell
-# 切换为白名单
+# 切换入站为白名单
 ./firewall --mode w
 
 ./firewall --mode W
 
-# 切换为黑名单
-./firewall --mode b
+# 切换出为黑名单
+./firewall --mode b --out
 
-./firewall --mode B
+./firewall --mode B --out
 ```
 
 #### 3.5.3.5 --add-rate-limit
@@ -293,7 +294,11 @@ npm run dev
 
 ## 3.2 前后端页面使用
 
+
+
 ## 4 项目结构
+
+
 
 ## 5 参考资料
 
