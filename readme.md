@@ -23,10 +23,21 @@
 ## 2.1 运行环境
 
 本程序需要在如下环境运行：
+
+防火墙命令行与内核程序：
 + Ubuntu 24.04.1 LTS 及以上环境
 + lib库中配置 6.14.0-37-generic 及以上Linux内核头文件
 + 支持`gnu99`和`gnu++17`的编译器
 + `make`工具
+
+防火墙后端程序：
++ `Python 3.8.10`及以上环境
++ `pip 20.0.2`及以上环境
++ 项目依赖清单列出在`backend/requirements.txt`
+
+防火墙前端程序：
++ `Nodejs v20.19.6`及以上环境
++ `npm 10.8.2`及以上环境
 
 ## 2.2 运行方式
 
@@ -79,8 +90,48 @@ sudo rmmod myfirewall.ko
 
 ![alt text](image-6.png)
 
-### 2.2.4 防火墙前后端程序
+### 2.2.4 防火墙后端程序
 
+后端程序用于控制防火墙的命令行控制程序，并且和前端进行通信，实现界面显示和面板控制。
+
+防火墙启动步骤如下：
+
+```shell
+# 1.查看backend目录下的.env文件，配置好防火墙用户态的控制器和日志器的可执行文件路径，配置好防火墙内核态ko文件的路径，可修改前端启动后系统登陆的账号和密码
+
+# 2.进入后端根目录backend：
+cd "/xxx/你的项目路径/backend"
+
+# 3.在backend目录下激活虚拟环境：
+source 你的虚拟环境名/bin/activate
+
+
+# 4.在backend目录下运行命令：
+sudo python3 main.py
+# 验证：终端无报错，且输出服务启动信息，即启动成功
+
+# 5.若端口被占用，可修改main.py中最下面的端口配置
+```
+![alt text](image-7.png)
+
+### 2.2.5 防火墙前端程序
+
+```shell
+#1.配置后端接口地址：找到前端根目录frontend下的.env文件，配置后端服务地址，需与后端启动的端口保持一致
+
+#​2.进入前端根目录frontend：
+cd /xxx/你的项目路径/frontend
+#​3.安装项目依赖：
+npm install
+#​4.启动前端开发服务：
+npm run dev
+#​5.验证启动成功：终端无报错，且输出类似 "Local: http://127.0.0.1:3000/" 的访问地址，即启动成功
+
+#6.访问项目：打开浏览器，输入终端提示的Local地址，即可进入防火墙前端页面​
+
+#7.若端口被占用，可手动修改前端配置文件（frontend目录下vite.config.js中的port配置项），重启服务
+```
+![alt text](image-8.png)
 # 3 使用说明
 
 ## 3.1 命令行使用
@@ -120,6 +171,7 @@ sudo rmmod myfirewall.ko
 + `--content "str1" "str2" "str3" ....` 过滤包含这些关键字的包
 + `--interface` 过滤对应的接口
 + `--drop / --accept` 黑名单/白名单模式下有效
++ `--out` 属于出站规则
 + `w/W b/B` 更改黑/白名单
 
 #### 3.1.2.2 流量限制选项
@@ -137,8 +189,8 @@ sudo rmmod myfirewall.ko
 # 过滤进入本机的，源IP地址为:123.123.123.123 目标端口为:80 的数据包
 ./firewall --add --src-ip 123.123.123.123 --dst-port 80 --drop
 
-# 过滤进入本机的，源MAC地址为：00:0c:29:09:f2:b0 协议为：icmp 的数据包
-./firewall --add --src-mac  00:0c:29:09:f2:b0 --proto icmp --drop
+# 过滤流出本机的，目标MAC地址为：00:0c:29:09:f2:b0 协议为：icmp 的数据包
+./firewall --add --src-mac  00:0c:29:09:f2:b0 --proto icmp --drop --out
 
 # 在12:00 - 14:00 时间段内丢弃所有源地址为：123.123.123.123 内容负载包含：abcd 或 efg 的数据包
 ./firewall --add --time-drop "12:00 14:00" --src-ip 123.123.123.123 --content ""abcd" "efg"" --drop
@@ -161,7 +213,6 @@ sudo rmmod myfirewall.ko
 ```shell
 ./firewall --list
 ```
-![alt text](image-4.png)
 
 #### 3.1.3.3 --del
 
