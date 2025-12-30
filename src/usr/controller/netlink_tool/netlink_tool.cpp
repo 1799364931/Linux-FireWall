@@ -140,6 +140,7 @@ int netlink_tool::recv_msg(struct nl_msg* msg, void* arg) {
                     uint64_t bytes_dropped;
                     uint64_t bytes_allowed;
                     bool enabled;
+                    uint8_t direction;
                 } __attribute__((packed));
 
                 /*
@@ -168,6 +169,10 @@ int netlink_tool::recv_msg(struct nl_msg* msg, void* arg) {
                     std::cout << "  Max Tokens: " << rule_msg->max_tokens
                               << "\n";
                     std::cout << "  Priority: " << rule_msg->priority << "\n";
+                    std::cout << "  Direction: "
+                              << (rule_msg->direction == 0 ? "INBOUND"
+                                                           : "OUTBOUND")
+                              << "\n";
 
                     if (rule_msg->src_ip != 0) {
                         uint32_t ip = htonl(rule_msg->src_ip);
