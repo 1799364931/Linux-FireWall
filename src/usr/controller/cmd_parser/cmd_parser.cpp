@@ -651,6 +651,12 @@ bool cmd_parser::parse_rate_limit_args() {
     } else {
         rate_limit_entry_.priority = 100;  // 默认优先级
     }
+    // 解析方向参数
+    if (parser_.exist("out")) {
+        rate_limit_entry_.direction = 1;  // 出站
+    } else {
+        rate_limit_entry_.direction = 0;  // 入站（默认）
+    }
 
     return true;
 }

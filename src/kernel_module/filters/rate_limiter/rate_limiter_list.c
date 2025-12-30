@@ -56,6 +56,7 @@ uint32_t build_rate_limit_list_msg(char** target_buffer_ptr) {
         rule_msg->src_port = rule->src_port;
         rule_msg->dst_port = rule->dst_port;
         rule_msg->priority = rule->priority;
+        rule_msg->direction = rule->direction;
         
         spin_lock_bh(&rule->lock);
         rule_msg->packets_dropped = rule->packets_dropped;

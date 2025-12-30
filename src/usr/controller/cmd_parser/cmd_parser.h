@@ -21,6 +21,7 @@ struct rate_limit_entry_msg {
     uint16_t src_port;    /* 源端口（0表示不限制） */
     uint16_t dst_port;    /* 目标端口（0表示不限制） */
     uint32_t priority;    /* 优先级 */
+    uint8_t direction;  // 0=入站(INBOUND), 1=出站(OUTBOUND)
 } __attribute__((packed));
 
 class cmd_parser {

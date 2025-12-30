@@ -142,7 +142,6 @@ static bool check_rate_limit(struct rate_limit_rule *rule,
     return allowed;
 }
 
-// kernel_module/filters/rate_limiter/rate_limiter.c
 unsigned int rate_limiter_hook(void *priv,
                                struct sk_buff *skb,
                                const struct nf_hook_state *state) {
@@ -150,18 +149,18 @@ unsigned int rate_limiter_hook(void *priv,
     struct rate_limit_rule *rule, *n;
     uint32_t src_ip = 0, dst_ip = 0;
     uint16_t src_port = 0, dst_port = 0;
+    uint8_t traffic_direction;  /*新增：当前数据包的方向 */
     
     static unsigned long last_print = 0;
     unsigned long now = get_jiffies_64();
     
-    // 每秒打印一次（避免日志爆炸）
-    if (time_after(now, last_print + HZ)) {
-        // printk(KERN_INFO "rate_limiter_hook: called, packets processed\n");
-        last_print = now;
-    }
+    // // 每秒打印一次（避免日志爆炸）
+    // if (time_after(now, last_print + HZ)) {
+    //     // printk(KERN_INFO "rate_limiter_hook: called, packets processed\n");
+    //     last_print = now;
+    // }
     
     /* 获取规则列表 */
-    
     list = get_rate_limit_list();
     if (!list || list->count == 0)
         return NF_ACCEPT;
@@ -170,16 +169,33 @@ unsigned int rate_limiter_hook(void *priv,
     if (extract_ip_port_info(skb, &src_ip, &dst_ip, &src_port, &dst_port) < 0)
         return NF_ACCEPT;
     
+    /*根据钩子点判断流量方向 */
+    if (state->hook == NF_INET_LOCAL_IN) {
+        traffic_direction = 0;  /* 入站 */
+    } else if (state->hook == NF_INET_LOCAL_OUT) {
+        traffic_direction = 1;  /* 出站 */
+    } else {
+        /* 其他钩子点，允许通过 */
+        return NF_ACCEPT;
+    }
+    
     /* 遍历规则列表（按优先级排序） */
     mutex_lock(&list->lock);
     list_for_each_entry_safe(rule, n, &list->head, list) {
         if (!rule->enabled)
             continue;
         
+        /* ← 新增：检查方向是否匹配 */
+        if (rule->direction != traffic_direction) {
+            continue;  /* 方向不匹配，跳过此规则 */
+        }
+        
         /* 检查规则是否匹配 */
         if (match_rate_limit_rule(rule, src_ip, dst_ip, src_port, dst_port)) {
-            printk(KERN_INFO "rate_limiter: matched rule %u, src_ip=%pI4, dst_ip=%pI4, src_port=%u, dst_port=%u\n",
-                   rule->rule_id, &src_ip, &dst_ip, ntohs(src_port), ntohs(dst_port));
+            printk(KERN_INFO "rate_limiter: matched rule %u, direction=%s, src_ip=%pI4, dst_ip=%pI4, src_port=%u, dst_port=%u\n",
+                   rule->rule_id,
+                   traffic_direction == 0 ? "INBOUND" : "OUTBOUND",
+                   &src_ip, &dst_ip, ntohs(src_port), ntohs(dst_port));
             
             /* 规则匹配，进行限速检查 */
             bool allowed = check_rate_limit(rule, skb);
@@ -211,7 +227,8 @@ struct rate_limit_rule* create_rate_limit_rule(uint32_t refill_rate,
                                                uint32_t dst_ip,
                                                uint16_t src_port,
                                                uint16_t dst_port,
-                                               uint32_t priority) {
+                                               uint32_t priority,
+                                               uint8_t direction) {
     struct rate_limit_rule *rule;
     struct rate_limit_rule_list *list;
     
@@ -239,12 +256,14 @@ struct rate_limit_rule* create_rate_limit_rule(uint32_t refill_rate,
     rule->src_port = src_port;
     rule->dst_port = dst_port;
     rule->priority = priority;
+    rule->direction = direction;  /* ← 设置方向 */
     rule->enabled = true;
     rule->last_refill = get_jiffies_64();
     rule->last_stat_reset = rule->last_refill;
     
-    printk(KERN_INFO "rate_limiter: created rule %u (rate=%u pps, max=%u)\n",
-           rule->rule_id, refill_rate, max_tokens);
+    printk(KERN_INFO "rate_limiter: created rule %u (rate=%u pps, max=%u, direction=%s)\n",
+           rule->rule_id, refill_rate, max_tokens,
+           direction == 0 ? "INBOUND" : "OUTBOUND");
     
     return rule;
 }

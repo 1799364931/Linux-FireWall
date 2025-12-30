@@ -28,6 +28,8 @@ struct rate_limit_rule {
     uint32_t dst_ip;              /* 目标IP */
     uint16_t src_port;            /* 源端口 */
     uint16_t dst_port;            /* 目标端口 */
+
+    uint8_t direction;            /* 0=入站, 1=出站 */
     
     /* 统计信息 */
     uint64_t packets_dropped;     /* 累计丢弃包数 */
@@ -70,7 +72,8 @@ struct rate_limit_rule* create_rate_limit_rule(uint32_t refill_rate,
                                                uint32_t dst_ip,
                                                uint16_t src_port,
                                                uint16_t dst_port,
-                                               uint32_t priority);
+                                               uint32_t priority,
+                                               uint8_t direction);
 
 void destroy_rate_limit_rule(struct rate_limit_rule* rule);
 

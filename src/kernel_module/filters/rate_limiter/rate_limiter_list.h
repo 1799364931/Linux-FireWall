@@ -14,6 +14,7 @@ struct rate_limit_entry_msg {
     uint16_t src_port;         /* 源端口（0表示不限制） */
     uint16_t dst_port;         /* 目标端口（0表示不限制） */
     uint32_t priority;         /* 优先级 */
+    uint8_t direction;         /* 0=入站, 1=出站 */
 } __attribute__((packed));
 
 /* 规则列表消息（返回给用户态） */
@@ -31,6 +32,7 @@ struct rate_limit_rule_msg {
     uint64_t bytes_dropped;
     uint64_t bytes_allowed;
     bool enabled;
+    uint8_t direction;         /* 0=入站, 1=出站 */
 } __attribute__((packed));
 
 /* 构建规则列表消息（用于发送给用户态） */
