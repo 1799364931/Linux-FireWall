@@ -25,3 +25,9 @@ Module.markers
 *.swo
 *.bak
 *.log
+__pycache__/
+*.pyc
+venv/
+.env/
+env/
+.venv/
