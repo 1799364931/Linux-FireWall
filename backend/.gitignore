@@ -25,6 +25,6 @@ logs/
 Thumbs.db  # Windows
 
 # 7. 虚拟环境的备选名称（防止你后续改了虚拟环境名，可留可删）
-venv/
+myenv/
 env/
 backend-env/
